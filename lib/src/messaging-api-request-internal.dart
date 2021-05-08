@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:messaging/src/batch-request-internal.dart';
 import 'package:messaging/src/messaging-errors-internal.dart';
-import 'package:messaging/src/utils/api_request/index.dart';
+import 'package:messaging/src/utils/api-request/index.dart';
 
 import 'batch-request-internal.dart';
 import 'index.dart';

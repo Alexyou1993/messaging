@@ -1,4 +1,4 @@
-import 'package:messaging/src/utils/api_request/index.dart';
+import 'package:messaging/src/utils/api-request/index.dart';
 import 'package:messaging/src/utils/error.dart';
 
 FirebaseError createFirebaseError(HttpError err) {

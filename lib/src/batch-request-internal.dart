@@ -2,20 +2,25 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:core';
 import 'dart:io';
-import 'package:messaging/src/utils/api_request/index.dart';
+import 'package:messaging/src/utils/api-request/index.dart';
 import 'package:messaging/src/utils/error.dart';
 
 const String PART_BOUNDARY = '__EDN_OF_PART__';
 const Duration TEN_SECONDS_IN_MILLIS = Duration(seconds: 10);
 
 /// Represents a request that can be sent as part of an HTTP batch request.
-class SubRequest {
+abstract class SubRequest {
   SubRequest(this.url, this.body, this.headers);
 
   final String url;
   final Object body;
   Map<String, dynamic>? headers;
 }
+
+/// An HTTP client that can be used to make batch requests. This client is not tied to any service
+/// (FCM or otherwise). Therefore it can be used to make batch requests to any service that allows
+/// it. If this requirement ever arises we can move this implementation to the utils module
+/// where it can be easily shared among other modules.
 
 class BatchRequestClient {
   const BatchRequestClient({
@@ -26,7 +31,7 @@ class BatchRequestClient {
 
   final HttpClient httpClient;
   final String batchUrl;
-  final Map<String, String> commonHeaders;
+  final Map<String, String>? commonHeaders;
 
   Future<List<HttpResponse>> send(List<SubRequest> requests) async {
     if(commonHeaders != null) {

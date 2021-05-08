@@ -12,7 +12,7 @@ import 'package:mime/mime.dart';
 import 'package:rxdart/rxdart.dart';
 
 
-part 'api_settings.dart';
+part 'api-settings.dart';
 part 'async_http_call.dart';
 part 'http_client.dart';
 part 'http_request_config.dart';
