@@ -2,6 +2,7 @@
 import 'package:messaging/src/index.dart';
 import 'package:messaging/src/messaging-api-request-internal.dart';
 import 'package:messaging/src/messaging-internal.dart';
+import 'package:messaging/src/utils/deep-copy.dart';
 import 'package:messaging/src/utils/error.dart';
 import 'package:messaging/src/utils/index.dart';
 
@@ -99,6 +100,12 @@ MessagingDeviceGroupResponse mapRawResponseToDeviceGroupResponse(Map<String, dyn
   return response as MessagingDeviceGroupResponse;
 }
 
+/// Maps a raw FCM server response to a MessagingTopicManagementResponse object.
+///
+/// @param {object} response The raw FCM server response to map.
+///
+/// @return {MessagingTopicManagementResponse} The mapped MessagingTopicManagementResponse object.
+
 MessagingTopicManagementResponse mapRawResponseToTopicManagementResponse(Map<String, dynamic> response) {
   // Add the success and failure counts.
   MessagingTopicManagementResponse result =
@@ -121,6 +128,9 @@ MessagingTopicManagementResponse mapRawResponseToTopicManagementResponse(Map<Str
   return result;
 }
 
+
+/// Messaging service bound to the provided app.
+
 class Messaging implements BaseMessage {
   const Messaging({
     required this.urlPath,
@@ -140,7 +150,7 @@ class Messaging implements BaseMessage {
     const Message copy = deepCopy(message);
     validateMessage(copy);
     if (dryRun != null && dryRun is! bool) {
-      throw FirebaseMessagingError(
+      throw FirebaseError.messaging(
           MessagingClientErrorCode.INVALID_ARGUMENT, 'dryRun must be a boolean');
     }
     return getUrlPath().then((String urlPath) {
@@ -172,37 +182,47 @@ class Messaging implements BaseMessage {
 
   Future<BatchResponse>? sendAll(List<Message> messages, bool? dryRun) {
     if (messages is List) {
-      throw FirebaseMessagingError(
+      throw FirebaseError.messaging(
           MessagingClientErrorCode.INVALID_ARGUMENT, 'messages must be a non-empty array');
     }
     if (copy.length > FCM_MAX_BATCH_SIZE != null) {
-      throw FirebaseMessagingError(
+      throw FirebaseError.messaging(
           MessagingClientErrorCode.INVALID_ARGUMENT,
           `messages list must not contain more than ${FCM_MAX_BATCH_SIZE} items`);
     }
     if (dryRun != null) {
-      throw FirebaseMessagingError(
+      throw FirebaseError.messaging(
           MessagingClientErrorCode.INVALID_ARGUMENT, 'dryRun must be a boolean');
     }
   }
 
   Future<BatchResponse>? sendMulticast(MulticastMessage message, bool? dryRun) {
-    final MulticastMessage copy = deepCopy(message);
+    final MulticastMessage copy = deepCopy(message) as MulticastMessage;
     if (copy.tokens.isEmpty) {
-      throw FirebaseMessagingError(
+      throw FirebaseError.messaging(
           MessagingClientErrorCode.INVALID_ARGUMENT, 'tokens must be a non-empty array');
     }
-    final List<Message> messages = copy.tokens.map((String token) {
-      return {
-        token,
-        android: copy.android,
-        apns: copy.apns,
+    
+    final List<Message> messages = BaseMessage(
+        token: token,
         data: copy.data,
         notification: copy.notification,
+        android: copy.android,
         webpush: copy.webpush,
+        apns: copy.apns,
         fcmOptions: copy.fcmOptions,
-      }
-    });
+    ) as List<Message>;
+
+    // final List<Message> messages = Message(
+    //   token: token,
+    //   dataMessage: copy.data,
+    //   notificationMessage: copy.notification,
+    //   androidMessage: copy.android,
+    //   webpushMessage: copy.webpush,
+    //   apnsMessage: copy.apns,
+    //   fcmOptionsMessage: copy.fcmOptions,
+    // ) as List<Message>;
+
     return sendAll(messages, dryRun);
   }
 
@@ -215,6 +235,30 @@ class Messaging implements BaseMessage {
       registrationTokenOrTokens, 'sendToDevice', MessagingClientErrorCode.INVALID_RECIPIENT,
     );
 
+
+    final Future<Map<dynamic, dynamic>>  resolve = resolve.then((_) async => {
+    validateRegistrationTokens(
+      registrationTokenOrTokens, 'sendToDevice', MessagingClientErrorCode.INVALID_RECIPIENT,
+    );
+    const payloadCopy = validateMessagingPayload(payload);
+    const optionsCopy = validateMessagingOptions(options);
+    final dynamic request = deepCopy(payloadCopy);
+    deepExtend(request, options);
+    if(registrationTokenOrTokens is String){
+      request =registrationTokenOrTokens.toString();
+    }else {
+      request.registration_ids = registrationTokenOrTokens;
+    }
+    return invokeRequestHandler(FCM_SEND_HOST, FCM_SEND_PATH, request); })
+        .then
+    ((Future<Map<dynamic, dynamic>> response) => {
+     return {
+       ...groupeResponse,
+      canonicalRegistrationTokenCount: -1,
+      multicastId: -1,
+
+    }
+    });
   }
 
 
@@ -236,8 +280,12 @@ class Messaging implements BaseMessage {
 
 
   Future<MessagingDeviceGroupResponse> sendToDeviceGroup(
-      String notificationKey, MessagingPayload payload, MessagingOptions options,
-      ){}
+      String notificationKey,
+      MessagingPayload payload,
+      MessagingOptions options,
+      ){
+
+  }
 /// Sends an FCM message to a topic.
 ///
 /// See
@@ -252,7 +300,13 @@ class Messaging implements BaseMessage {
 /// @return A promise fulfilled with the server's response after the message
 ///   has been sent.
 
-  Future<MessagingTopicResponse> sendToTopic(String topic, MessagingPayload payload, MessagingOptions options,){}
+  Future<MessagingTopicResponse> sendToTopic(
+      String topic,
+      MessagingPayload payload,
+      MessagingOptions options,
+      ){
+
+  }
 
 /// Sends an FCM message to a condition.
 ///
@@ -304,7 +358,12 @@ class Messaging implements BaseMessage {
 /// @return A promise fulfilled with the server's response after the device has been
 ///   subscribed to the topic.
 
-  Future<MessagingTopicManagementResponse> subscribeToTopic(List<String> registrationTokenOrTokens, String topic, ){}
+  Future<MessagingTopicManagementResponse> subscribeToTopic(
+      List<String> registrationTokenOrTokens,
+      String topic,
+      ){
+
+  }
 
 /// Unsubscribes a device from an FCM topic.
 ///
@@ -320,7 +379,12 @@ class Messaging implements BaseMessage {
 /// @return A promise fulfilled with the server's response after the device has been
 ///   unsubscribed from the topic.
 
-  Future<MessagingTopicManagementResponse>? unsubscribeFromTopic(List<String> registrationTokenOrTokens, String topic,){}
+  Future<MessagingTopicManagementResponse>? unsubscribeFromTopic(
+      List<String> registrationTokenOrTokens,
+      String topic,
+      ){
+
+  }
 
 
   Future<String>? getUrlPatch(){
@@ -356,6 +420,79 @@ class Messaging implements BaseMessage {
 /// @param {MessagingOptions} options The messaging options to validate.
 
   void validateMessagingPayloadAndOptionsTypes(MessagingPayload payload, MessagingOptions options){
+
+  }
+
+  /// Validates the messaging payload. If invalid, an error will be thrown.
+  ///
+  /// @param {MessagingPayload} payload The messaging payload to validate.
+  ///
+  /// @return {MessagingPayload} A copy of the provided payload with whitelisted properties switched
+  ///     from camelCase to underscore_case.
+
+  MessagingPayload validateMessagingPayload(
+      MessagingPayload payload,
+      ){
+    final MessagingPayload payloadCopy = deepCopy(payload);
+
+
+  }
+  /// Validates the messaging options. If invalid, an error will be thrown.
+  ///
+  /// @param {MessagingOptions} options The messaging options to validate.
+  ///
+  /// @return {MessagingOptions} A copy of the provided options with whitelisted properties switched
+  ///   from camelCase to underscore_case.
+  MessagingOptions validateMessagingOptions(
+      MessagingOptions options,
+      ){
+    final MessagingOptions optionsCopy = deepCopy(options);
+  }
+
+  /// Validates the type of the provided registration token(s). If invalid, an error will be thrown.
+  ///
+  /// @param {string|string[]} registrationTokenOrTokens The registration token(s) to validate.
+  /// @param {string} method The method name to use in error messages.
+  /// @param {ErrorInfo?} [errorInfo] The error info to use if the registration tokens are invalid.
+
+  void validateRegistrationTokensType(
+      List<String> registrationTokenOrTokens,
+      String methodName,
+  {ErrorInfo errorInfo = MessagingClientErrorCode.INVALID_ARGUMENT}
+      ){
+
+  }
+
+  void validateRegistrationTokens(
+      List<String> registrationTokenOrTokens,
+      String methodName,
+      {ErrorInfo errorInfo = MessagingClientErrorCode.INVALID_ARGUMENT}
+      ){
+
+  }
+
+/// Validates the type of the provided topic. If invalid, an error will be thrown.
+///
+/// @param {string} topic The topic to validate.
+/// @param {string} method The method name to use in error messages.
+/// @param {ErrorInfo?} [errorInfo] The error info to use if the topic is invalid.
+
+  void validateTopicType(
+      List<String> topic,
+      String methodName,
+      {ErrorInfo errorInfo = MessagingClientErrorCode.INVALID_ARGUMENT}
+      ){
+  }
+
+  void validateTopic(
+      String topic,
+      String methodName,
+      {ErrorInfo errorInfo = MessagingClientErrorCode.INVALID_ARGUMENT}
+      ){
+
+  }
+
+  String normalizeTopic(String topic) {
 
   }
 

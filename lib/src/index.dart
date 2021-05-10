@@ -1,6 +1,16 @@
 import 'package:messaging/src/utils/error.dart';
 
 class BaseMessage {
+  BaseMessage({
+    required this.token,
+    required this.data,
+    required this.notification,
+    required this.android,
+    required this.webpush,
+    required this.apns,
+    required this.fcmOptions,
+});
+  String? token;
   Map<String, String>? data;
   Notification? notification;
   AndroidConfig? android;
@@ -33,16 +43,38 @@ class ConditionMessage extends BaseMessage {
 //todo: check if the dart implementation is correct;
 class Message extends BaseMessage {
   Message({
-    required this.token,
-    required this.topic,
-    required this.condition,
-  });
+    this.token,
+    this.topic,
+    this.condition,
+    this.dataMessage,
+    this.notificationMessage,
+    this.androidMessage,
+    this.fcmOptionsMessage,
+    this.apnsMessage,
+    this.webpushMessage,
+  }) : super(
+      token: token,
+      data: dataMessage,
+      notification: notificationMessage,
+      android: androidMessage,
+      webpush: webpushMessage,
+      apns: apnsMessage,
+      fcmOptions: fcmOptionsMessage,
+  );
 
-  final String token;
+  String? token;
 
-  final String topic;
+  final String? topic;
 
-  final String condition;
+  final String? condition;
+
+
+  Map<String, String>? dataMessage;
+  Notification? notificationMessage;
+  AndroidConfig? androidMessage;
+  WebpushConfig? webpushMessage;
+  ApnsConfig? apnsMessage;
+  FcmOptions? fcmOptionsMessage;
 }
 
 /// Payload for the admin.messaing.sendMulticase() method.
