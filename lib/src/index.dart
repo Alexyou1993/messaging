@@ -62,6 +62,7 @@ class Message extends BaseMessage {
       fcmOptions: fcmOptionsMessage,
   );
 
+  @override
   String? token;
 
   final String? topic;

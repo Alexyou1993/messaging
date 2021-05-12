@@ -10,10 +10,10 @@ const Duration TEN_SECONDS_IN_MILLIS = Duration(seconds: 10);
 
 /// Represents a request that can be sent as part of an HTTP batch request.
 abstract class SubRequest {
-  SubRequest(this.url, this.body, this.headers);
+  SubRequest(this.url, this.body, {this.headers});
 
   final String url;
-  final Object body;
+  final Map<dynamic, dynamic> body;
   Map<String, dynamic>? headers;
 }
 
@@ -23,6 +23,12 @@ abstract class SubRequest {
 /// where it can be easily shared among other modules.
 
 class BatchRequestClient {
+  /// @param {HttpClient} httpClient The client that will be used to make HTTP calls.
+  /// @param {String} batchUrl The URL that accepts batch requests.
+  /// @param {Map<String, String>} commonHeaders Optional headers that will be included in all requests.
+  ///
+  /// @constructor
+
   const BatchRequestClient({
     required this.httpClient,
     required this.batchUrl,
@@ -33,8 +39,14 @@ class BatchRequestClient {
   final String batchUrl;
   final Map<String, String>? commonHeaders;
 
+  /// Sends the given list of sub requests as a single batch, and parses the results into an list
+  /// of HttpResponse objects.
+  ///
+  /// @param {List<SubRequest>} requests An list of sub requests to send.
+  /// @return {Future<List<HttpResponse>>} A future is return when the send operation is complete.
+
   Future<List<HttpResponse>> send(List<SubRequest> requests) async {
-    if(commonHeaders != null) {
+    if (commonHeaders != null) {
       requests = requests.map<SubRequest>((SubRequest req) {
         req.headers!.addAll(<String, dynamic>{...commonHeaders!, ...req.headers!});
         return req;
