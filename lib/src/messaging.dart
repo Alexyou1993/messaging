@@ -5,6 +5,7 @@ import 'package:messaging/src/messaging-internal.dart';
 import 'package:messaging/src/utils/deep-copy.dart';
 import 'package:messaging/src/utils/error.dart';
 import 'package:messaging/src/utils/index.dart';
+import 'package:messaging/src/utils/validator.dart';
 
 
 const String FCM_SEND_HOST = 'fcm.googleapis.com';
@@ -149,8 +150,8 @@ class Messaging {
   }
 
 
-  Future<String> send(Message message, bool? dryRun) {
-    const Message copy = deepCopy(message);
+  Future<String>? send(Message message, bool? dryRun) {
+    final Message copy = deepCopy(message) as Message;
     validateMessage(copy);
     if (dryRun != null && dryRun is! bool) {
       throw FirebaseError.messaging(
@@ -159,7 +160,7 @@ class Messaging {
   }
 }
 
-/// Sends all the messages in the given array via Firebase Cloud Messaging.
+/// Sends all the messages in the given list via Firebase Cloud Messaging.
 /// Employs batching to send the entire list as a single RPC call. Compared
 /// to the `send()` method, this method is a significantly more efficient way
 /// to send multiple messages.
@@ -170,27 +171,31 @@ class Messaging {
 /// the list could be sent. Partial failures are indicated by a `BatchResponse`
 /// return value.
 ///
-/// @param messages A non-empty array
+/// @param messages A non-empty List
 ///   containing up to 500 messages.
 /// @param dryRun Whether to send the messages in the dry-run
 ///   (validation only) mode.
-/// @return A Promise fulfilled with an object representing the result of the
+/// @return A Future fulfilled with an object representing the result of the
 ///   send operation.
 
-Future<BatchResponse>? sendAll(List<Message> messages, bool? dryRun) {
-  if (messages is List) {
+Future<BatchResponse>? sendAll(List<Message>? messages, bool? dryRun) {
+  if (isList(messages)) {
     throw FirebaseError.messaging(
         MessagingClientErrorCode.INVALID_ARGUMENT, 'messages must be a non-empty array');
   }
-  if (copy.length > FCM_MAX_BATCH_SIZE != null) {
+
+  final List<Message> copy = deepCopy(messages) as List<Message>;
+
+  if (copy.length > FCM_MAX_BATCH_SIZE) {
     throw FirebaseError.messaging(
         MessagingClientErrorCode.INVALID_ARGUMENT,
         'messages list must not contain more than $FCM_MAX_BATCH_SIZE items');
   }
-  if (dryRun != null) {
+  if (dryRun != null && isBoolean(dryRun)) {
     throw FirebaseError.messaging(
         MessagingClientErrorCode.INVALID_ARGUMENT, 'dryRun must be a boolean');
   }
+  //TODO getUrlPatch
 }
 
 Future<BatchResponse>? sendMulticast(MulticastMessage message, bool? dryRun) {
@@ -230,12 +235,13 @@ Future<MessagingDevicesResponse> sendToDevice(List<String> registrationTokenOrTo
     registrationTokenOrTokens, 'sendToDevice', MessagingClientErrorCode.INVALID_RECIPIENT,
   );
 
-
-  final Future<Map<dynamic, dynamic>> resolve = resolve.then((_) async => {
+  final Future<Map<dynamic, dynamic>> resolve = _resolve;
+  resolve.then((_) async => <Future<Map<dynamic, dynamic>>>{
   validateRegistrationTokens(
   registrationTokenOrTokens, 'sendToDevice', MessagingClientErrorCode.INVALID_RECIPIENT,
   );
-      const payloadCopy = validateMessagingPayload(payload);
+
+  const payloadCopy = validateMessagingPayload(payload);
   const optionsCopy = validateMessagingOptions(options);
   final dynamic request = deepCopy(payloadCopy);
   deepExtend(request, options);
@@ -245,16 +251,7 @@ Future<MessagingDevicesResponse> sendToDevice(List<String> registrationTokenOrTo
     request.registration_ids = registrationTokenOrTokens;
   }
   return invokeRequestHandler(FCM_SEND_HOST, FCM_SEND_PATH, request);
-})
-      .then
-  ((Future<Map<dynamic, dynamic>> response) => {
-  return {
-  ...groupeResponse,
-  canonicalRegistrationTokenCount: -1,
-  multicastId: -1,
-
-  }
-  });
+});
 }
 
 
@@ -310,7 +307,7 @@ Future<MessagingDeviceGroupResponse> sendToDeviceGroup(String notificationKey,
 /// @return A promise fulfilled with the server's response after the message
 ///   has been sent.
 
-Future<MessagingTopicResponse> sendToTopic(String topic,
+Future<MessagingTopicResponse>? sendToTopic(String topic,
     MessagingPayload payload,
     MessagingOptions options,) {
   // Validate the input argument types. Since these are common developer errors when getting
@@ -320,6 +317,17 @@ Future<MessagingTopicResponse> sendToTopic(String topic,
 
   // Prepend the topic with /topics/ if necessary.
   topic = normalizeTopic(topic);
+
+  final Future<dynamic> resolve = Future<void>(_resolve.then((){
+    // Validate the contents of the payload and options objects. Because we are now in a
+    // promise, any thrown error will cause this method to return a rejected promise.
+    final payloadCopy = validateMessagingPayload(payload);
+    final optionsCopy = validateMessagingOptions(options);
+  }));
+
+
+
+
 }
 
 /// Sends an FCM message to a condition.
@@ -464,7 +472,9 @@ void validateMessagingPayloadAndOptionsTypes(MessagingPayload? payload, Messagin
 ///     from camelCase to underscore_case.
 
 MessagingPayload validateMessagingPayload(MessagingPayload payload,) {
-  final MessagingPayload payloadCopy = deepCopy(payload);
+  final MessagingPayload payloadCopy = deepCopy(payload) as MessagingPayload;
+
+
 }
 
 /// Validates the messaging options. If invalid, an error will be thrown.
@@ -474,7 +484,7 @@ MessagingPayload validateMessagingPayload(MessagingPayload payload,) {
 /// @return {MessagingOptions} A copy of the provided options with whitelisted properties switched
 ///   from camelCase to underscore_case.
 MessagingOptions validateMessagingOptions(MessagingOptions options,) {
-  final MessagingOptions optionsCopy = deepCopy(options);
+  final MessagingOptions optionsCopy = deepCopy(options) as MessagingOptions;
 }
 
 /// Validates the type of the provided registration token(s). If invalid, an error will be thrown.
@@ -530,31 +540,33 @@ void validateTopicType(List<String> topic,
   }
 }
 
-void validateTopic(String topic,
+void validateTopic(String? topic,
     String methodName,
     {ErrorInfo errorInfo = MessagingClientErrorCode.INVALID_ARGUMENT}) {
-  if(isTopic(topic)) {
-
-  }
+ if(topic != null) {
+   if (!isTopic(topic)) {
+      throw FirebaseError.messaging( errorInfo,
+          'Topic provided to $methodName() must be a string which matches the format '
+  '"/topics/[a-zA-Z0-9-_.~%]+".',);
+   }
+ }
 
 }
+
+/// Normalizes the provided topic name by prepending it with '/topics/', if necessary.
+///
+/// @param {string} topic The topic name to normalize.
+///
+/// @return {string} The normalized topic name.
 
 String normalizeTopic(String topic) {
-
+  if(!topic.contains('/topics/')) {
+    topic = '/topics/$topic';
+  }
+  return topic;
 }
 
-@override
-Future<BatchResponse>? sendMulticastMessage(MulticastMessage message, bool? dryRun) {
-  // TODO: implement sendMulticastMessage
-  throw UnimplementedError();
-}
 
-@override
-Future<MessagingConditionResponse>? sendToConditions(String conditions, MessagingPayload payload,
-    MessagingOptions? options) {
-  // TODO: implement sendToConditions
-  throw UnimplementedError();
-}
 
 }
 
