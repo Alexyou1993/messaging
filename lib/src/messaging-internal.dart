@@ -1,4 +1,6 @@
 import 'package:messaging/src/utils/error.dart';
+import 'package:messaging/src/utils/index.dart';
+import 'package:messaging/src/utils/validator.dart';
 import 'package:string_validator/string_validator.dart';
 
 import 'index.dart';
@@ -22,15 +24,47 @@ const List<String> BLACKLISTED_OPTIONS_KEYS = [
 ///
 /// @param {Message message} Message An object to be validated.
 
-void validateMessage(Message message) {
-  final String anyMessage = message.toString();
-  if (anyMessage.contains('/topics/')) {
-    anyMessage.replaceAll('/topics/', '');
-  }
-  //TODO check topic
+void validateMessage(Message? message) {
+  if (message == null) {
+    throw FirebaseError.messaging(
+      MessagingClientErrorCode.INVALID_PAYLOAD,
+      'Message must be a non-null object',
+    );
+  } else {
+    final Message anyMessage = message;
 
-  const List<dynamic> targets = <dynamic>[anyMessage.token, anyMessage.topic, anyMessage.coditions];
+    if (anyMessage.topic!.startsWith('/topics/')) {
+      anyMessage.topic!.replaceAll('/topics/', '');
+    }
+
+    final RegExp validCharacters = RegExp(r'^[a-zA-Z0-9-_.~%]');
+    if (!anyMessage.topic!.contains(validCharacters) && anyMessage.topic!.isEmpty) {
+      throw FirebaseError.messaging(
+        MessagingClientErrorCode.INVALID_PAYLOAD,
+        'Malformed topic name',
+      );
+    }
+    final List<dynamic> targets = <dynamic>[anyMessage.token, anyMessage.topic, anyMessage.condition];
+    if (targets.length != 1) {
+      FirebaseError.messaging(
+        MessagingClientErrorCode.INVALID_PAYLOAD,
+        'Exactly one of topic, token or condition is required',
+      );
+    }
+
+    validateStringMap(message.data!, 'data');
+    validateAndroidConfig(message.android!);
+    validateWebpushConfig(message.webpush!);
+    validateApnsConfig(message.apns!);
+    validateFcmOptions(message.fcmOptions);
+    validateNotification(message.notification);
+  }
 }
+
+/// Checks if the given object only contains strings as child values.
+///
+/// @param {Map<String, dynamic>} map An object to be validated.
+/// @param {string} label A label to be included in the errors thrown.
 
 void validateStringMap(Map<String, dynamic> map, String label) {
   if (map.isNotEmpty) {
@@ -41,6 +75,129 @@ void validateStringMap(Map<String, dynamic> map, String label) {
       throw FirebaseError.messaging(MessagingClientErrorCode.INVALID_PAYLOAD, '$label must only contain string value');
     }
   }
+}
+
+/// Checks if the given WebpushConfig object is valid. The object must have valid headers and data.
+///
+/// @param {WebpushConfig} config An object to be validated.
+
+void validateWebpushConfig(WebpushConfig? config) {
+  if (config == null) {
+    FirebaseError.messaging(
+      MessagingClientErrorCode.INVALID_PAYLOAD,
+      'webpush must be a non-null object',
+    );
+  } else {
+    validateStringMap(config.headers!, 'webpush.headers');
+    validateStringMap(config.data!, 'webpush.data');
+  }
+}
+
+/// Checks if the given ApnsConfig object is valid. The object must have valid headers and a
+/// payload.
+///
+/// @param {ApnsConfig} config An object to be validated.
+
+void validateApnsConfig(ApnsConfig? config) {
+  if (config == null) {
+    throw FirebaseError.messaging(
+      MessagingClientErrorCode.INVALID_PAYLOAD,
+      'apns must be a non-null object',
+    );
+  } else {
+    validateStringMap(config.headers!, 'apns.headers');
+    validateApnsPayload(config.payload);
+    validateApnsFcmOptions(config.fcmOptions!);
+  }
+}
+
+/// Checks if the given ApnsFcmOptions object is valid.
+///
+/// @param {ApnsFcmOptions} fcmOptions An object to be validated.
+
+void validateApnsFcmOptions(ApnsFcmOptions fcmOptions) {
+  if (fcmOptions.imageUrl == null) {
+    throw FirebaseError.messaging(MessagingClientErrorCode.INVALID_PAYLOAD, '$label must be a non-null object');
+  }
+  if (isURL(fcmOptions.imageUrl!) == false) {
+    throw FirebaseError.messaging(MessagingClientErrorCode.INVALID_PAYLOAD, 'imageUrl must be a valid URL string');
+  }
+
+  if ((fcmOptions.analyticsLabel is String) == false && fcmOptions.analyticsLabel == null) {
+    throw FirebaseError.messaging(MessagingClientErrorCode.INVALID_PAYLOAD, 'analysticsLabel must be a string value');
+  }
+
+  const Map<String, String> propertyMappings = <String, String>{
+    'imageUrl': 'image',
+  };
+
+  for (int idx = 0; idx < propertyMappings.length; idx++) {
+    for (int idy = 0; idy < fcmOptions.imageUrl!.length; idy++) {
+      if (propertyMappings[idx] == fcmOptions.imageUrl![idy]) {
+        throw FirebaseError.messaging(
+          MessagingClientErrorCode.INVALID_PAYLOAD,
+          'Multiple specifications for ${propertyMappings[idx]} in ApnsFcmOptions',
+        );
+      }
+    }
+  }
+  renameProperties(fcmOptions as Map<String, dynamic>, propertyMappings);
+}
+
+/// Checks if the given FcmOptions object is valid.
+///
+/// @param {FcmOptions} fcmOptions An object to be validated.
+
+void validateFcmOptions(FcmOptions? fcmOptions) {
+  if (fcmOptions == null) {
+    throw FirebaseError.messaging(
+      MessagingClientErrorCode.INVALID_PAYLOAD,
+      'analyticsLabel must be a string value',
+    );
+  }
+
+  if (fcmOptions.analyticsLabel == null && isString(fcmOptions.analyticsLabel) == false) {
+    throw FirebaseError.messaging(
+      MessagingClientErrorCode.INVALID_PAYLOAD,
+      'analyticsLabel must be a string value',
+    );
+  }
+}
+
+/// Checks if the given Notification object is valid.
+///
+/// @param {Notification} notification An object to be validated.
+
+void validateNotification(Notification? notification) {
+  if (notification == null) {
+    throw FirebaseError.messaging(
+      MessagingClientErrorCode.INVALID_PAYLOAD,
+      'notification must be a non-null object',
+    );
+  }
+
+  if (notification.imageUrl == null && isUrl(notification.imageUrl) == false) {
+    throw FirebaseError.messaging(
+      MessagingClientErrorCode.INVALID_PAYLOAD,
+      'notification.imageUrl must be a valid URL string',
+    );
+  }
+
+  final Map<String, String> propertyMappings = {
+    'imageUrl': 'image',
+  };
+
+  for (int idx = 0; idx < propertyMappings.length; idx++) {
+    for (int idy = 0; idy < notification.imageUrl!.length; idy++) {
+      if (propertyMappings[idx] == notification.imageUrl![idy]) {
+        throw FirebaseError.messaging(
+          MessagingClientErrorCode.INVALID_PAYLOAD,
+          'Multiple specifications for ${propertyMappings[idx]} in Notification',
+        );
+      }
+    }
+  }
+  renameProperties(notification as Map<String, dynamic>, propertyMappings);
 }
 
 /// Checks if the given ApnsPayload object is valid. The object must have a valid aps value.
@@ -66,8 +223,21 @@ void validateAps(Aps? aps) {
       'apns.payload.aps must be a non-null object',
     );
   }
-  validateApsAlert(aps!.alert);
+  validateApsAlert(aps!.alert!);
   validateApsSound(aps.sound);
+
+  final Map<String, String> propertyMappings = <String, String>{
+    'contentAvailable': 'content-available',
+    'mutableContent': 'mutable-content',
+    'threadId': 'thread-id',
+  };
+  for (int idx = 0; idx < propertyMappings.length; idx++) {
+    if(aps.toString().contains(propertyMappings[idx]!)){
+      throw FirebaseError.messaging( MessagingClientErrorCode.INVALID_PAYLOAD, 'Multiple specifications for ${propertyMappings[idx]} in Aps');
+    }
+  }
+  renameProperties(aps as Map<String, dynamic>, propertyMappings);
+
 }
 
 /// Checks if the given alert object is valid. Alert could be a string or a complex object.
@@ -76,36 +246,69 @@ void validateAps(Aps? aps) {
 ///
 /// @param {string | ApsAlert} alert An alert string or an object to be validated.
 
-void validateApsAlert(ApsAlert alert){
+void validateApsAlert(ApsAlert alert) {}
 
-}
 
-void validateWebpushConfig(WebpushConfig config) {
-  validateStringMap(config.headers!, 'webpush.headers');
-  validateStringMap(config.data!, 'webpush.data');
-}
 
-void validateApnsConfig(ApnsConfig config) {
-  validateStringMap(config.headers!, 'apns.headers');
-  validateApnsPayload(config.payload);
-  validateApnsFcmOptions(config.fcmOptions!);
-}
+/// Checks if the given AndroidConfig object is valid. The object must have valid ttl, data,
+/// and notification fields. If successful, transforms the input object by renaming keys to valid
+/// Android keys. Also transforms the ttl value to the format expected by FCM service.
+///
+/// @param {AndroidConfig} config An object to be validated.
 
-void validateApnsFcmOptions(ApnsFcmOptions fcmOptions) {
-  if (fcmOptions.imageUrl == null) {
-    throw FirebaseError.messaging(MessagingClientErrorCode.INVALID_PAYLOAD, '$label must be a non-null object');
-  }
-  if (isURL(fcmOptions.imageUrl!) == false) {
-    throw FirebaseError.messaging(MessagingClientErrorCode.INVALID_PAYLOAD, 'imageUrl must be a valid URL string');
+void validateAndroidConfig(AndroidConfig? config) {
+  if (config == null) {
+    throw FirebaseError.messaging(
+      MessagingClientErrorCode.INVALID_PAYLOAD,
+      'android must be a non-null object',
+    );
   }
 
-  if ((fcmOptions.analyticsLabel is String) == false && fcmOptions.analyticsLabel == null) {
-    throw FirebaseError.messaging(MessagingClientErrorCode.INVALID_PAYLOAD, 'analysticsLabel must be a string value');
+  if (config.ttl != null) {
+    if (config.ttl! < const Duration(milliseconds: 0)) {
+      throw FirebaseError.messaging(
+        MessagingClientErrorCode.INVALID_PAYLOAD,
+        'TTL must be a non-negative duration in milliseconds',
+      );
+    }
+    final String duration = transformMillisecondsToSecondsString(config.ttl!.inMilliseconds);
+    config.ttl = duration as Duration;
   }
 
-  const Map<String, String> propertyMappings = <String, String>{
-    'imageUrl': 'image',
+  validateStringMap(config.data!, 'data');
+  validateAndroidNotification(config.notification);
+  validateAndroidFcmOptions(config.fcmOptions);
+
+  final Map<String, String> propertyMappings = <String, String>{
+    'collapseKey': 'collapse_key',
+    'restrictedPackageName': 'restricted_package_name',
   };
 
-  for (int idx = 0; idx < propertyMappings.length; idx++) {}
+  renameProperties(config as Map<String, dynamic>, propertyMappings);
+}
+
+/// Transforms milliseconds to the format expected by FCM service.
+/// Returns the duration in seconds with up to nine fractional
+/// digits, terminated by 's'. Example: "3.5s".
+///
+/// @param {number} milliseconds The duration in milliseconds.
+/// @return {string} The resulting formatted string in seconds with up to nine fractional
+/// digits, terminated by 's'.
+
+String transformMillisecondsToSecondsString(int milliseconds) {
+  final Duration timeDuration = Duration(milliseconds: milliseconds);
+  final int seconds = timeDuration.inSeconds;
+  final String duration;
+  final int nanos = (milliseconds - seconds * 1000) * 1000000;
+  if (nanos > 0) {
+    String nanoString = nanos.toString();
+    while (nanoString.length < 9) {
+      nanoString = '0' + nanoString;
+    }
+    duration = '$seconds.${nanoString}s';
+  } else {
+    duration = '${seconds}s';
+  }
+
+  return duration;
 }

@@ -6,7 +6,7 @@
 /// @param {Map<String, dynamic> obj} obj The object whose properties to rename.
 /// @param {Map<String, String> keyMap} keyMap The mapping from old to new property names.
 
-void renameProperties(Map<String, dynamic> obj, Map<String, String> keyMap) {
+void renameProperties(Map<String, dynamic> obj, Map<dynamic, String> keyMap) {
   for(int idx = 0; idx< keyMap.length; idx++){
     for(int idy =0; idy < obj.length; idy++){
       if(keyMap[idx] == obj[idy]){
