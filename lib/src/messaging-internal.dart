@@ -1,3 +1,6 @@
+import 'dart:core';
+import 'dart:html';
+
 import 'package:messaging/src/utils/error.dart';
 import 'package:messaging/src/utils/index.dart';
 import 'package:messaging/src/utils/validator.dart';
@@ -232,12 +235,40 @@ void validateAps(Aps? aps) {
     'threadId': 'thread-id',
   };
   for (int idx = 0; idx < propertyMappings.length; idx++) {
-    if(aps.toString().contains(propertyMappings[idx]!)){
-      throw FirebaseError.messaging( MessagingClientErrorCode.INVALID_PAYLOAD, 'Multiple specifications for ${propertyMappings[idx]} in Aps');
+    if (aps.toString().contains(propertyMappings[idx]!)) {
+      throw FirebaseError.messaging(
+          MessagingClientErrorCode.INVALID_PAYLOAD, 'Multiple specifications for ${propertyMappings[idx]} in Aps');
     }
   }
   renameProperties(aps as Map<String, dynamic>, propertyMappings);
+}
 
+void validateApsSound(CriticalSound? sound) {
+  if (sound.toString().isEmpty && sound == null) {
+    throw FirebaseError.messaging(
+      MessagingClientErrorCode.INVALID_PAYLOAD,
+      'apns.payload.aps.sound must be a non-empty string or a non-null object',
+    );
+  }
+  //TODO isNumber
+
+  final double? volume = sound!.volume;
+  if (volume! < 0 || volume > 1) {
+    throw FirebaseError.messaging(
+      MessagingClientErrorCode.INVALID_PAYLOAD,
+      'apns.payload.aps.sound.volume must be in the interval [0, 1]',
+    );
+  }
+  final Map<String, dynamic> soundObject = sound as Map<String, dynamic>;
+  const String key = 'critical';
+  final dynamic critical = soundObject[key];
+  if (critical != null && critical != 1) {
+    if (critical == true) {
+      soundObject[key] = 1;
+    } else {
+      soundObject.remove(key);
+    }
+  }
 }
 
 /// Checks if the given alert object is valid. Alert could be a string or a complex object.
@@ -246,9 +277,47 @@ void validateAps(Aps? aps) {
 ///
 /// @param {string | ApsAlert} alert An alert string or an object to be validated.
 
-void validateApsAlert(ApsAlert alert) {}
+void validateApsAlert(ApsAlert? alert) {
+  if (alert == null || isString(alert) == false) {
+    throw FirebaseError.messaging(
+      MessagingClientErrorCode.INVALID_PAYLOAD,
+      'apns.payload.aps.alert must be a string or a non-null object',
+    );
+  }
 
+  if (alert.locArgs!.isNotEmpty && alert.locKey!.isEmpty) {
+    throw FirebaseError.messaging(
+      MessagingClientErrorCode.INVALID_PAYLOAD,
+      'apns.payload.aps.alert.locKey is required when specifying locArgs',
+    );
+  }
 
+  if (alert.titleLocArgs!.isNotEmpty && alert.titleLocKey!.isEmpty) {
+    throw FirebaseError.messaging(
+      MessagingClientErrorCode.INVALID_PAYLOAD,
+      'apns.payload.aps.alert.titleLocKey is required when specifying titleLocArgs',
+    );
+  }
+
+  if (alert.subtitleLocArgs!.isNotEmpty && alert.subtitleLocKey!.isEmpty) {
+    throw FirebaseError.messaging(
+      MessagingClientErrorCode.INVALID_PAYLOAD,
+      'apns.payload.aps.alert.subtitleLocKey is required when specifying subtitleLocArgs',
+    );
+  }
+
+  final Map<String, String> propertyMappings = <String, String>{
+    'locKey': 'loc-key',
+    'locArgs': 'loc-args',
+    'titleLocKey': 'title-loc-key',
+    'titleLocArgs': 'title-loc-args',
+    'subtitleLocKey': 'subtitle-loc-key',
+    'subtitleLocArgs': 'subtitle-loc-args',
+    'actionLocKey': 'action-loc-key',
+    'launchImage': 'launch-image',
+  };
+  renameProperties(alert as Map<String, String>, propertyMappings);
+}
 
 /// Checks if the given AndroidConfig object is valid. The object must have valid ttl, data,
 /// and notification fields. If successful, transforms the input object by renaming keys to valid
@@ -285,6 +354,81 @@ void validateAndroidConfig(AndroidConfig? config) {
   };
 
   renameProperties(config as Map<String, dynamic>, propertyMappings);
+}
+
+/// Checks if the given AndroidNotification object is valid. The object must have valid color and
+/// localization parameters. If successful, transforms the input object by renaming keys to valid
+/// Android keys.
+///
+/// @param {AndroidNotification} notification An object to be validated.
+
+void validateAndroidNotification(AndroidNotification? notification) {
+  if (notification == null) {
+    throw FirebaseError.messaging(
+      MessagingClientErrorCode.INVALID_PAYLOAD,
+      'android.notification must be a non-null object',
+    );
+  }
+  final RegExp validCharacters = RegExp(r'^[a-fA-F0-9]');
+  if (notification.color != null && !notification.color!.contains(validCharacters)) {
+    throw FirebaseError.messaging(
+      MessagingClientErrorCode.INVALID_PAYLOAD,
+      'android.notification.color must be in the form #RRGGBB',
+    );
+  }
+  if (notification.bodyLocArgs!.isNotEmpty && notification.bodyLocKey!.isEmpty) {
+    throw FirebaseError.messaging(
+      MessagingClientErrorCode.INVALID_PAYLOAD,
+      'android.notification.bodyLocKey is required when specifying bodyLocArgs',
+    );
+  }
+
+  if (notification.titleLocArgs!.isNotEmpty && notification.titleLocKey!.isEmpty) {
+    throw FirebaseError.messaging(
+      MessagingClientErrorCode.INVALID_PAYLOAD,
+      'android.notification.titleLocKey is required when specifying titleLocArgs',
+    );
+  }
+
+  if (!isUrl(notification.imageUrl!)) {
+    throw FirebaseError.messaging(
+      MessagingClientErrorCode.INVALID_PAYLOAD,
+      'android.notification.imageUrl must be a valid URL string',
+    );
+  }
+
+  if (notification.eventTimestamp != null) {
+    if (notification.eventTimestamp.runtimeType != DateTime) {
+      throw FirebaseError.messaging(
+        MessagingClientErrorCode.INVALID_PAYLOAD,
+        'android.notification.eventTimestamp must be a valid `Date` object',
+      );
+    }
+    // Convert timestamp to RFC3339 UTC "Zulu" format, example "2014-10-02T15:01:23.045123456Z"
+    final String zuluTimestamp = notification.eventTimestamp!.toIso8601String();
+    notification.eventTimestamp = zuluTimestamp as DateTime;
+  }
+
+  if (notification.vibrateTimingsMillis != null) {
+    if (notification.vibrateTimingsMillis!.isEmpty) {
+      throw FirebaseError.messaging(
+        MessagingClientErrorCode.INVALID_PAYLOAD,
+        'android.notification.vibrateTimingsMillis must be a non-empty array of numbers',
+      );
+    }
+    List<String>? vibrateTimings;
+    for (int idx = 0; idx < notification.vibrateTimingsMillis!.length; idx++) {
+      if (notification.vibrateTimingsMillis![idx] < const Duration(milliseconds: 0)) {
+        throw FirebaseError.messaging(
+          MessagingClientErrorCode.INVALID_PAYLOAD,
+          'android.notification.vibrateTimingsMillis must be non-negative durations in milliseconds',
+        );
+      }
+      final String duration = transformMillisecondsToSecondsString(notification.vibrateTimingsMillis![idx] as int);
+      vibrateTimings!.add(duration);
+    }
+    notification.vibrateTimingsMillis = vibrateTimings!.cast<Duration>();
+  }
 }
 
 /// Transforms milliseconds to the format expected by FCM service.
