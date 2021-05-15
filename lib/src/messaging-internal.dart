@@ -341,7 +341,7 @@ void validateAndroidConfig(AndroidConfig? config) {
       );
     }
     final String duration = transformMillisecondsToSecondsString(config.ttl!.inMilliseconds);
-    config.ttl = duration as Duration;
+    config.ttl = duration as Duration;//TODO look at this cast
   }
 
   validateStringMap(config.data!, 'data');
@@ -427,7 +427,7 @@ void validateAndroidNotification(AndroidNotification? notification) {
       final String duration = transformMillisecondsToSecondsString(notification.vibrateTimingsMillis![idx] as int);
       vibrateTimings!.add(duration);
     }
-    notification.vibrateTimingsMillis = vibrateTimings!.cast<Duration>();
+    notification.vibrateTimingsMillis = vibrateTimings!.cast<Duration>();//TODO look at this cast
   }
 }
 
