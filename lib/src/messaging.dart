@@ -228,6 +228,24 @@ Future<BatchResponse>? sendMulticast(MulticastMessage message, bool? dryRun) {
   return sendAll(messages, dryRun);
 }
 
+/// Sends an FCM message to a single device corresponding to the provided registration token.
+///
+/// See
+/// [Send to individual devices](/docs/cloud-messaging/admin/legacy-fcm#send_to_individual_devices)
+/// for code samples and detailed documentation. Takes either a
+/// `registrationToken` to send to a single device or a
+/// `registrationTokens` parameter containing an list of tokens to send
+/// to multiple devices.
+///
+/// @param registrationToken A device registration token or an list of
+///   device registration tokens to which the message should be sent.
+/// @param payload The message payload.
+/// @param options Optional options to
+///   alter the message.
+///
+/// @return A future fulfilled with the server's response after the message
+///   has been sent.
+
 Future<MessagingDevicesResponse> sendToDevice(List<String> registrationTokenOrTokens,
     MessagingPayload payload,
     MessagingOptions options,) {
@@ -235,23 +253,24 @@ Future<MessagingDevicesResponse> sendToDevice(List<String> registrationTokenOrTo
     registrationTokenOrTokens, 'sendToDevice', MessagingClientErrorCode.INVALID_RECIPIENT,
   );
 
+
   final Future<Map<dynamic, dynamic>> resolve = _resolve;
   resolve.then((_) async => <Future<Map<dynamic, dynamic>>>{
-  validateRegistrationTokens(
-  registrationTokenOrTokens, 'sendToDevice', MessagingClientErrorCode.INVALID_RECIPIENT,
+   validateRegistrationTokens(
+   registrationTokenOrTokens, 'sendToDevice', MessagingClientErrorCode.INVALID_RECIPIENT,
   );
 
-  const payloadCopy = validateMessagingPayload(payload);
-  const optionsCopy = validateMessagingOptions(options);
+  final MessagingPayload payloadCopy = validateMessagingPayload(payload);
+  final MessagingOptions optionsCopy = validateMessagingOptions(options);
   final dynamic request = deepCopy(payloadCopy);
   deepExtend(request, options);
   if (registrationTokenOrTokens is String) {
-    request = registrationTokenOrTokens.toString();
+  request = registrationTokenOrTokens.toString();
   } else {
-    request.registration_ids = registrationTokenOrTokens;
+  request.registration_ids = registrationTokenOrTokens;
   }
   return invokeRequestHandler(FCM_SEND_HOST, FCM_SEND_PATH, request);
-});
+  });
 }
 
 
@@ -272,7 +291,7 @@ Future<MessagingDevicesResponse> sendToDevice(List<String> registrationTokenOrTo
 ///   has been sent.
 
 
-Future<MessagingDeviceGroupResponse> sendToDeviceGroup(String notificationKey,
+Future<MessagingDeviceGroupResponse>? sendToDeviceGroup(String notificationKey,
     MessagingPayload payload,
     MessagingOptions options,) {
   if (notificationKey.isEmpty) {
@@ -318,16 +337,12 @@ Future<MessagingTopicResponse>? sendToTopic(String topic,
   // Prepend the topic with /topics/ if necessary.
   topic = normalizeTopic(topic);
 
-  final Future<dynamic> resolve = Future<void>(_resolve.then((){
+  final Future<dynamic> resolve = Future<void>(_resolve.then(() {
     // Validate the contents of the payload and options objects. Because we are now in a
     // promise, any thrown error will cause this method to return a rejected promise.
     final payloadCopy = validateMessagingPayload(payload);
     final optionsCopy = validateMessagingOptions(options);
   }));
-
-
-
-
 }
 
 /// Sends an FCM message to a condition.
@@ -473,8 +488,6 @@ void validateMessagingPayloadAndOptionsTypes(MessagingPayload? payload, Messagin
 
 MessagingPayload validateMessagingPayload(MessagingPayload payload,) {
   final MessagingPayload payloadCopy = deepCopy(payload) as MessagingPayload;
-
-
 }
 
 /// Validates the messaging options. If invalid, an error will be thrown.
@@ -533,24 +546,23 @@ void validateRegistrationTokens(List<String> registrationTokenOrTokens,
 void validateTopicType(List<String> topic,
     String methodName,
     [ErrorInfo errorInfo = MessagingClientErrorCode.INVALID_ARGUMENT]) {
-  if(topic.isEmpty) {
-    throw FirebaseError.messaging(     errorInfo,
-        'Topic provided to $methodName() must be a string which matches the format '
-  '"/topics/[a-zA-Z0-9-_.~%]+".',);
+  if (topic.isEmpty) {
+    throw FirebaseError.messaging(errorInfo,
+      'Topic provided to $methodName() must be a string which matches the format '
+          '"/topics/[a-zA-Z0-9-_.~%]+".',);
   }
 }
 
 void validateTopic(String? topic,
     String methodName,
     {ErrorInfo errorInfo = MessagingClientErrorCode.INVALID_ARGUMENT}) {
- if(topic != null) {
-   if (!isTopic(topic)) {
-      throw FirebaseError.messaging( errorInfo,
-          'Topic provided to $methodName() must be a string which matches the format '
-  '"/topics/[a-zA-Z0-9-_.~%]+".',);
-   }
- }
-
+  if (topic != null) {
+    if (!isTopic(topic)) {
+      throw FirebaseError.messaging(errorInfo,
+        'Topic provided to $methodName() must be a string which matches the format '
+            '"/topics/[a-zA-Z0-9-_.~%]+".',);
+    }
+  }
 }
 
 /// Normalizes the provided topic name by prepending it with '/topics/', if necessary.
@@ -560,12 +572,11 @@ void validateTopic(String? topic,
 /// @return {string} The normalized topic name.
 
 String normalizeTopic(String topic) {
-  if(!topic.contains('/topics/')) {
+  if (!topic.contains('/topics/')) {
     topic = '/topics/$topic';
   }
   return topic;
 }
-
 
 
 }

@@ -9,7 +9,8 @@ class BaseMessage {
     required this.webpush,
     required this.apns,
     required this.fcmOptions,
-});
+  });
+
   String? token;
   Map<String, String>? data;
   Notification? notification;
@@ -19,23 +20,23 @@ class BaseMessage {
   FcmOptions? fcmOptions;
 }
 
-class TokenMessage extends BaseMessage {
-  TokenMessage({required this.token});
-
-  final String token;
-}
-
-class TopicMessage extends BaseMessage {
-  TopicMessage({required this.topic});
-
-  final String topic;
-}
-
-class ConditionMessage extends BaseMessage {
-  ConditionMessage({required this.condition});
-
-  final String condition;
-}
+// class TokenMessage extends BaseMessage {
+//   TokenMessage({required this.token});
+//
+//   final String token;
+// }
+//
+// class TopicMessage extends BaseMessage {
+//   TopicMessage({required this.topic});
+//
+//   final String topic;
+// }
+//
+// class ConditionMessage extends BaseMessage {
+//   ConditionMessage({required this.condition});
+//
+//   final String condition;
+// }
 
 /// Payload for the admin.messaging.send() operation. The payload contains all the fields
 /// in the BaseMessage type, and exactly one of token, topic or condition.
@@ -53,14 +54,14 @@ class Message extends BaseMessage {
     this.apnsMessage,
     this.webpushMessage,
   }) : super(
-      token: token,
-      data: dataMessage,
-      notification: notificationMessage,
-      android: androidMessage,
-      webpush: webpushMessage,
-      apns: apnsMessage,
-      fcmOptions: fcmOptionsMessage,
-  );
+          token: token,
+          data: dataMessage,
+          notification: notificationMessage,
+          android: androidMessage,
+          webpush: webpushMessage,
+          apns: apnsMessage,
+          fcmOptions: fcmOptionsMessage,
+        );
 
   @override
   String? token;
@@ -68,7 +69,6 @@ class Message extends BaseMessage {
   final String? topic;
 
   final String? condition;
-
 
   Map<String, String>? dataMessage;
   Notification? notificationMessage;
@@ -82,11 +82,11 @@ class Message extends BaseMessage {
 
 /// The payload contains all the fields in the BaseMessage type, and a list of tokens.
 
-class MulticastMessage extends BaseMessage {
-  MulticastMessage({required this.tokens});
-
-  final List<String> tokens;
-}
+// class MulticastMessage extends BaseMessage {
+//   MulticastMessage({required this.tokens});
+//
+//   final List<String> tokens;
+// }
 
 /// A notification that can be included in [link messaging.Message].
 
@@ -102,6 +102,14 @@ class Notification {
   /// URL of an image to be displayed in the notification.
 
   String? imageUrl;
+
+  Map<String, dynamic> toMap() {
+    return <String, dynamic>{
+      'title': title,
+      'body': body,
+      'imageUrl': imageUrl,
+    };
+  }
 }
 
 /// Represents platform-independent options for features provided by the FCM SDKs.
@@ -300,6 +308,19 @@ class Aps {
   String? threadId;
 
   final Map<String, dynamic> customData;
+
+  Map<String, dynamic> toMap() {
+    return <String, dynamic>{
+      'alert': alert,
+      'badge': badge,
+      'sound': sound,
+      'contentAvailable': contentAvailable,
+      'mutableContent': mutableContent,
+      'category': category,
+      'threadId': threadId,
+      'customData': customData,
+    };
+  }
 }
 
 class ApsAlert {
@@ -314,6 +335,22 @@ class ApsAlert {
   List<String>? subtitleLocArgs;
   String? actionLocKey;
   String? launchImage;
+
+  Map<String, dynamic> toMap() {
+    return <String, dynamic>{
+      'title': title,
+      'subtitle': subtitle,
+      'body': body,
+      'locKey': locKey,
+      'locArgs': locArgs,
+      'titleLocKey': titleLocKey,
+      'titleLocArgs': titleLocArgs,
+      'subtitleLocKey': subtitleLocKey,
+      'subtitleLocArgs': subtitleLocArgs,
+      'actionLocKey': actionLocKey,
+      'launchImage': launchImage,
+    };
+  }
 }
 
 /// Represents a critical sound configuration that can be included in the
@@ -345,6 +382,13 @@ class ApnsFcmOptions {
   /// URL of an image to be displayed in the notification.
 
   String? imageUrl;
+
+  Map<String, dynamic> toMap(){
+    return <String, dynamic>{
+       'analyticsLabel': analyticsLabel,
+        'imageUrl': imageUrl,
+    };
+  }
 }
 
 /// Represents the Android-specific options that can be included in an [link messaging.Message].
@@ -381,6 +425,18 @@ class AndroidConfig {
   /// Options for features provided by the FCM SDK for Android.
 
   AndroidFcmOptions? fcmOptions;
+
+  Map<String, dynamic> toMap() {
+    return <String, dynamic>{
+      'collapseKey': collapseKey,
+      'priority': priority,
+      'ttl': ttl,
+      'restrictedPackageName': restrictedPackageName,
+      'data': data,
+      'notification': notification,
+      'fcmOptions': fcmOptions,
+    };
+  }
 }
 
 enum PriorityAndroidConfig { high, normal }
@@ -1005,157 +1061,160 @@ class Messaging {
   /// The {@link app.App app} associated with the current `Messaging` service instance
   static const Messaging app = app.App;
 
-/// Sends the given message via FCM.
-///
-/// @param message The message payload.
-/// @param dryRun Whether to send the message in the dry-run
-///   (validation only) mode.
-/// @return A promise fulfilled with a unique message ID
-///   string after the message has been successfully handed off to the FCM
-///   service for delivery.
+  /// Sends the given message via FCM.
+  ///
+  /// @param message The message payload.
+  /// @param dryRun Whether to send the message in the dry-run
+  ///   (validation only) mode.
+  /// @return A promise fulfilled with a unique message ID
+  ///   string after the message has been successfully handed off to the FCM
+  ///   service for delivery.
 
-  Future<String>? send(Message message, bool? dryRun ){}
+  Future<String>? send(Message message, bool? dryRun) {}
 
-/// Sends all the messages in the given array via Firebase Cloud Messaging.
-/// Employs batching to send the entire list as a single RPC call. Compared
-/// to the `send()` method, this method is a significantly more efficient way
-/// to send multiple messages.
-///
-/// The responses list obtained from the return value
-/// corresponds to the order of tokens in the `MulticastMessage`. An error
-/// from this method indicates a total failure -- i.e. none of the messages in
-/// the list could be sent. Partial failures are indicated by a `BatchResponse`
-/// return value.
-///
-/// @param messages A non-empty array
-///   containing up to 500 messages.
-/// @param dryRun Whether to send the messages in the dry-run
-///   (validation only) mode.
-/// @return A Promise fulfilled with an object representing the result of the
-///   send operation.
+  /// Sends all the messages in the given array via Firebase Cloud Messaging.
+  /// Employs batching to send the entire list as a single RPC call. Compared
+  /// to the `send()` method, this method is a significantly more efficient way
+  /// to send multiple messages.
+  ///
+  /// The responses list obtained from the return value
+  /// corresponds to the order of tokens in the `MulticastMessage`. An error
+  /// from this method indicates a total failure -- i.e. none of the messages in
+  /// the list could be sent. Partial failures are indicated by a `BatchResponse`
+  /// return value.
+  ///
+  /// @param messages A non-empty array
+  ///   containing up to 500 messages.
+  /// @param dryRun Whether to send the messages in the dry-run
+  ///   (validation only) mode.
+  /// @return A Promise fulfilled with an object representing the result of the
+  ///   send operation.
 
-  Future<BatchResponse>? sendAll(List<Message> messages, bool? dryRun){}
+  Future<BatchResponse>? sendAll(List<Message> messages, bool? dryRun) {}
 
-/// Sends the given multicast message to all the FCM registration tokens
-/// specified in it.
-///
-/// This method uses the `sendAll()` API under the hood to send the given
-/// message to all the target recipients. The responses list obtained from the
-/// return value corresponds to the order of tokens in the `MulticastMessage`.
-/// An error from this method indicates a total failure -- i.e. the message was
-/// not sent to any of the tokens in the list. Partial failures are indicated by
-/// a `BatchResponse` return value.
-///
-/// @param message A multicast message
-///   containing up to 500 tokens.
-/// @param dryRun Whether to send the message in the dry-run
-///   (validation only) mode.
-/// @return A Promise fulfilled with an object representing the result of the
-///   send operation.
+  /// Sends the given multicast message to all the FCM registration tokens
+  /// specified in it.
+  ///
+  /// This method uses the `sendAll()` API under the hood to send the given
+  /// message to all the target recipients. The responses list obtained from the
+  /// return value corresponds to the order of tokens in the `MulticastMessage`.
+  /// An error from this method indicates a total failure -- i.e. the message was
+  /// not sent to any of the tokens in the list. Partial failures are indicated by
+  /// a `BatchResponse` return value.
+  ///
+  /// @param message A multicast message
+  ///   containing up to 500 tokens.
+  /// @param dryRun Whether to send the message in the dry-run
+  ///   (validation only) mode.
+  /// @return A Promise fulfilled with an object representing the result of the
+  ///   send operation.
 
-  Future<BatchResponse>? sendMulticastMessage(MulticastMessage message, bool? dryRun){}
+  Future<BatchResponse>? sendMulticastMessage(MulticastMessage message, bool? dryRun) {}
 
-/// Sends an FCM message to a single device corresponding to the provided
-/// registration token.
-///
-/// See
-/// [Send to individual devices](/docs/cloud-messaging/admin/legacy-fcm#send_to_individual_devices)
-/// for code samples and detailed documentation. Takes either a
-/// `registrationToken` to send to a single device or a
-/// `registrationTokens` parameter containing an array of tokens to send
-/// to multiple devices.
-///
-/// @param registrationToken A device registration token or an array of
-///   device registration tokens to which the message should be sent.
-/// @param payload The message payload.
-/// @param options Optional options to
-///   alter the message.
-///
-/// @return A promise fulfilled with the server's response after the message
-///   has been sent.
+  /// Sends an FCM message to a single device corresponding to the provided
+  /// registration token.
+  ///
+  /// See
+  /// [Send to individual devices](/docs/cloud-messaging/admin/legacy-fcm#send_to_individual_devices)
+  /// for code samples and detailed documentation. Takes either a
+  /// `registrationToken` to send to a single device or a
+  /// `registrationTokens` parameter containing an array of tokens to send
+  /// to multiple devices.
+  ///
+  /// @param registrationToken A device registration token or an array of
+  ///   device registration tokens to which the message should be sent.
+  /// @param payload The message payload.
+  /// @param options Optional options to
+  ///   alter the message.
+  ///
+  /// @return A promise fulfilled with the server's response after the message
+  ///   has been sent.
 
-  Future<MessagingDevicesResponse>? sendToDevice(List<String> registrationToken, MessagingPayload payload, MessagingOptions? options){}
+  Future<MessagingDevicesResponse>? sendToDevice(
+      List<String> registrationToken, MessagingPayload payload, MessagingOptions? options) {}
 
-/// Sends an FCM message to a device group corresponding to the provided
-/// notification key.
-///
-/// See
-/// [Send to a device group](/docs/cloud-messaging/admin/legacy-fcm#send_to_a_device_group)
-/// for code samples and detailed documentation.
-///
-/// @param notificationKey The notification key for the device group to
-///   which to send the message.
-/// @param payload The message payload.
-/// @param options Optional options to
-///   alter the message.
-///
-/// @return A promise fulfilled with the server's response after the message
-///   has been sent.
+  /// Sends an FCM message to a device group corresponding to the provided
+  /// notification key.
+  ///
+  /// See
+  /// [Send to a device group](/docs/cloud-messaging/admin/legacy-fcm#send_to_a_device_group)
+  /// for code samples and detailed documentation.
+  ///
+  /// @param notificationKey The notification key for the device group to
+  ///   which to send the message.
+  /// @param payload The message payload.
+  /// @param options Optional options to
+  ///   alter the message.
+  ///
+  /// @return A promise fulfilled with the server's response after the message
+  ///   has been sent.
 
-  Future<MessagingDeviceGroupResponse>? sendToDeviceGroup(String notificationKey, MessagingPayload payload, MessagingOptions? options){}
+  Future<MessagingDeviceGroupResponse>? sendToDeviceGroup(
+      String notificationKey, MessagingPayload payload, MessagingOptions? options) {}
 
-/// Sends an FCM message to a topic.
-///
-/// See
-/// [Send to a topic](/docs/cloud-messaging/admin/legacy-fcm#send_to_a_topic)
-/// for code samples and detailed documentation.
-///
-/// @param topic The topic to which to send the message.
-/// @param payload The message payload.
-/// @param options Optional options to
-///   alter the message.
-///
-/// @return A promise fulfilled with the server's response after the message
-///   has been sent.
+  /// Sends an FCM message to a topic.
+  ///
+  /// See
+  /// [Send to a topic](/docs/cloud-messaging/admin/legacy-fcm#send_to_a_topic)
+  /// for code samples and detailed documentation.
+  ///
+  /// @param topic The topic to which to send the message.
+  /// @param payload The message payload.
+  /// @param options Optional options to
+  ///   alter the message.
+  ///
+  /// @return A promise fulfilled with the server's response after the message
+  ///   has been sent.
 
-  Future<MessagingTopicResponse>? sendToTopic(String topic, MessagingPayload payload, MessagingOptions? options){}
+  Future<MessagingTopicResponse>? sendToTopic(String topic, MessagingPayload payload, MessagingOptions? options) {}
 
-/// Sends an FCM message to a condition.
-///
-/// See
-/// [Send to a condition](/docs/cloud-messaging/admin/legacy-fcm#send_to_a_condition)
-/// for code samples and detailed documentation.
-///
-/// @param condition The condition determining to which topics to send
-///   the message.
-/// @param payload The message payload.
-/// @param options Optional options to
-///   alter the message.
-///
-/// @return A promise fulfilled with the server's response after the message
-///   has been sent.
+  /// Sends an FCM message to a condition.
+  ///
+  /// See
+  /// [Send to a condition](/docs/cloud-messaging/admin/legacy-fcm#send_to_a_condition)
+  /// for code samples and detailed documentation.
+  ///
+  /// @param condition The condition determining to which topics to send
+  ///   the message.
+  /// @param payload The message payload.
+  /// @param options Optional options to
+  ///   alter the message.
+  ///
+  /// @return A promise fulfilled with the server's response after the message
+  ///   has been sent.
 
-  Future<MessagingConditionResponse>? sendToConditions(String conditions, MessagingPayload payload, MessagingOptions? options){}
-/// Subscribes a device to an FCM topic.
-///
-/// See [Subscribe to a
-/// topic](/docs/cloud-messaging/manage-topics#suscribe_and_unsubscribe_using_the)
-/// for code samples and detailed documentation. Optionally, you can provide an
-/// array of tokens to subscribe multiple devices.
-///
-/// @param registrationTokens A token or array of registration tokens
-///   for the devices to subscribe to the topic.
-/// @param topic The topic to which to subscribe.
-///
-/// @return A promise fulfilled with the server's response after the device has been
-///   subscribed to the topic.
+  Future<MessagingConditionResponse>? sendToConditions(
+      String conditions, MessagingPayload payload, MessagingOptions? options) {}
 
-  Future<MessagingTopicManagementResponse>? subscribeToTopic(List<String> registrationTokens, String topic){}
+  /// Subscribes a device to an FCM topic.
+  ///
+  /// See [Subscribe to a
+  /// topic](/docs/cloud-messaging/manage-topics#suscribe_and_unsubscribe_using_the)
+  /// for code samples and detailed documentation. Optionally, you can provide an
+  /// array of tokens to subscribe multiple devices.
+  ///
+  /// @param registrationTokens A token or array of registration tokens
+  ///   for the devices to subscribe to the topic.
+  /// @param topic The topic to which to subscribe.
+  ///
+  /// @return A promise fulfilled with the server's response after the device has been
+  ///   subscribed to the topic.
 
-/// Unsubscribes a device from an FCM topic.
-///
-/// See [Unsubscribe from a
-/// topic](/docs/cloud-messaging/admin/manage-topic-subscriptions#unsubscribe_from_a_topic)
-/// for code samples and detailed documentation.  Optionally, you can provide an
-/// array of tokens to unsubscribe multiple devices.
-///
-/// @param registrationTokens A device registration token or an array of
-///   device registration tokens to unsubscribe from the topic.
-/// @param topic The topic from which to unsubscribe.
-///
-/// @return A promise fulfilled with the server's response after the device has been
-///   unsubscribed from the topic.
+  Future<MessagingTopicManagementResponse>? subscribeToTopic(List<String> registrationTokens, String topic) {}
 
-Future<MessagingTopicManagementResponse>? unsubscribeFromTopic(List<String> registrationTokens, String topic){}
+  /// Unsubscribes a device from an FCM topic.
+  ///
+  /// See [Unsubscribe from a
+  /// topic](/docs/cloud-messaging/admin/manage-topic-subscriptions#unsubscribe_from_a_topic)
+  /// for code samples and detailed documentation.  Optionally, you can provide an
+  /// array of tokens to unsubscribe multiple devices.
+  ///
+  /// @param registrationTokens A device registration token or an array of
+  ///   device registration tokens to unsubscribe from the topic.
+  /// @param topic The topic from which to unsubscribe.
+  ///
+  /// @return A promise fulfilled with the server's response after the device has been
+  ///   unsubscribed from the topic.
 
+  Future<MessagingTopicManagementResponse>? unsubscribeFromTopic(List<String> registrationTokens, String topic) {}
 }

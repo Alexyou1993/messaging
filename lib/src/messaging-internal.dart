@@ -12,7 +12,7 @@ import 'index.dart';
 const List<String> BLACKLISTED_DATA_PAYLOAD_KEYS = <String>['from'];
 
 // Keys which are not allowed in the messaging options object.
-const List<String> BLACKLISTED_OPTIONS_KEYS = [
+const List<String> BLACKLISTED_OPTIONS_KEYS = <String>[
   'condition',
   'data',
   'notification',
@@ -118,9 +118,9 @@ void validateApnsConfig(ApnsConfig? config) {
 ///
 /// @param {ApnsFcmOptions} fcmOptions An object to be validated.
 
-void validateApnsFcmOptions(ApnsFcmOptions fcmOptions) {
-  if (fcmOptions.imageUrl == null) {
-    throw FirebaseError.messaging(MessagingClientErrorCode.INVALID_PAYLOAD, '$label must be a non-null object');
+void validateApnsFcmOptions(ApnsFcmOptions? fcmOptions) {
+  if (fcmOptions == null) {
+    throw FirebaseError.messaging(MessagingClientErrorCode.INVALID_PAYLOAD, 'fcmOptions must be a non-null object');
   }
   if (isURL(fcmOptions.imageUrl!) == false) {
     throw FirebaseError.messaging(MessagingClientErrorCode.INVALID_PAYLOAD, 'imageUrl must be a valid URL string');
@@ -144,7 +144,8 @@ void validateApnsFcmOptions(ApnsFcmOptions fcmOptions) {
       }
     }
   }
-  renameProperties(fcmOptions as Map<String, dynamic>, propertyMappings);
+  final Map<String, dynamic> fcmOptionsMap = fcmOptions.toMap();
+  renameProperties(fcmOptionsMap, propertyMappings);
 }
 
 /// Checks if the given FcmOptions object is valid.
@@ -186,7 +187,7 @@ void validateNotification(Notification? notification) {
     );
   }
 
-  final Map<String, String> propertyMappings = {
+  final Map<String, String> propertyMappings = <String, String>{
     'imageUrl': 'image',
   };
 
@@ -200,7 +201,8 @@ void validateNotification(Notification? notification) {
       }
     }
   }
-  renameProperties(notification as Map<String, dynamic>, propertyMappings);
+  final Map<String, dynamic> notificationMap = notification.toMap();
+  renameProperties(notificationMap, propertyMappings);
 }
 
 /// Checks if the given ApnsPayload object is valid. The object must have a valid aps value.
@@ -240,7 +242,8 @@ void validateAps(Aps? aps) {
           MessagingClientErrorCode.INVALID_PAYLOAD, 'Multiple specifications for ${propertyMappings[idx]} in Aps');
     }
   }
-  renameProperties(aps as Map<String, dynamic>, propertyMappings);
+  final Map<String, dynamic> apsMap = aps.toMap();
+  renameProperties(apsMap, propertyMappings);
 }
 
 void validateApsSound(CriticalSound? sound) {
@@ -316,7 +319,8 @@ void validateApsAlert(ApsAlert? alert) {
     'actionLocKey': 'action-loc-key',
     'launchImage': 'launch-image',
   };
-  renameProperties(alert as Map<String, String>, propertyMappings);
+  final Map<String, dynamic> alertMap = alert.toMap();
+  renameProperties(alertMap, propertyMappings);
 }
 
 /// Checks if the given AndroidConfig object is valid. The object must have valid ttl, data,
@@ -341,7 +345,8 @@ void validateAndroidConfig(AndroidConfig? config) {
       );
     }
     final String duration = transformMillisecondsToSecondsString(config.ttl!.inMilliseconds);
-    config.ttl = duration as Duration;//TODO look at this cast
+
+    config.ttl = Duration(seconds: int.parse(duration));
   }
 
   validateStringMap(config.data!, 'data');
@@ -353,7 +358,8 @@ void validateAndroidConfig(AndroidConfig? config) {
     'restrictedPackageName': 'restricted_package_name',
   };
 
-  renameProperties(config as Map<String, dynamic>, propertyMappings);
+  final Map<String, dynamic> configMap = config.toMap();
+  renameProperties(configMap, propertyMappings);
 }
 
 /// Checks if the given AndroidNotification object is valid. The object must have valid color and
@@ -406,7 +412,7 @@ void validateAndroidNotification(AndroidNotification? notification) {
     }
     // Convert timestamp to RFC3339 UTC "Zulu" format, example "2014-10-02T15:01:23.045123456Z"
     final String zuluTimestamp = notification.eventTimestamp!.toIso8601String();
-    notification.eventTimestamp = zuluTimestamp as DateTime;
+    notification.eventTimestamp = DateTime.parse(zuluTimestamp);
   }
 
   if (notification.vibrateTimingsMillis != null) {
@@ -427,7 +433,31 @@ void validateAndroidNotification(AndroidNotification? notification) {
       final String duration = transformMillisecondsToSecondsString(notification.vibrateTimingsMillis![idx] as int);
       vibrateTimings!.add(duration);
     }
-    notification.vibrateTimingsMillis = vibrateTimings!.cast<Duration>();//TODO look at this cast
+    List<Duration>? durationList;
+    vibrateTimings!.map((String value) =>
+        durationList!.add(Duration(seconds: int.parse(value))));
+
+    notification.vibrateTimingsMillis = durationList;
+  }
+}
+
+/// Checks if the given AndroidFcmOptions object is valid.
+///
+/// @param {AndroidFcmOptions} fcmOptions An object to be validated.
+
+void validateAndroidFcmOptions(AndroidFcmOptions? fcmOptions) {
+  if (fcmOptions == null) {
+    throw FirebaseError.messaging(
+      MessagingClientErrorCode.INVALID_PAYLOAD,
+      'fcmOptions must be a non-null object',
+    );
+  }
+
+  if (isString(fcmOptions.analyticsLabel) == false) {
+    throw FirebaseError.messaging(
+      MessagingClientErrorCode.INVALID_PAYLOAD,
+      'analyticsLabel must be a string value',
+    );
   }
 }
 
