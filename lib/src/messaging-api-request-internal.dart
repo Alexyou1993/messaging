@@ -20,6 +20,7 @@ const Map<String, String> LEGACY_FIREBASE_MESSAGING_HEADERS = <String, String>{
   'access_token_auth': 'true',
 };
 
+/// Class that provides a mechanism to send requests to the Firebase Cloud Messaging backend.
 
 class FirebaseMessagingRequestHandler {
   FirebaseMessagingRequestHandler(dynamic app) {
@@ -30,7 +31,12 @@ class FirebaseMessagingRequestHandler {
   AuthorizedHttpClient? httpClient;
   BatchRequestClient? batchClient;
 
-
+  /// Invokes the request handler with the provided request data.
+  ///
+  /// @param {string} host The host to which to send the request.
+  /// @param {string} path The path to which to send the request.
+  /// @param {object} requestData The request data.
+  /// @return {Promise<object>} A promise that resolves with the response.
 
   Future<Map<dynamic, dynamic>> invokeRequestHandler(String host, String path, Map<String, dynamic> requestData) async {
     try {
@@ -52,6 +58,11 @@ class FirebaseMessagingRequestHandler {
     }
   }
 
+  /// Sends the given array of sub requests as a single batch to FCM, and parses the result into
+  /// a BatchResponse object.
+  ///
+  /// @param {SubRequest[]} requests An array of sub requests to send.
+  /// @return {Future<BatchResponse>} A future that resolves when the send operation is complete.
 
   Future<BatchResponse> sendBatchRequest(List<SubRequest> requests) async{
   try{

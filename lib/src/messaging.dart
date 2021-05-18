@@ -68,13 +68,19 @@ const Map<String, String> MESSAGING_CONDITION_RESPONSE_KEYS_MAP = <String, Strin
   'message_id': 'messageId',
 };
 
+/// Maps a raw FCM server response to a MessagingDevicesResponse object.
+///
+/// @param {object} response The raw FCM server response to map.
+///
+/// @return {MessagingDeviceGroupResponse} The mapped MessagingDevicesResponse object.
 
-MessagingDevicesResponse mapRawResponseToDevicesResponse(Map<String, dynamic> response) {
+MessagingDevicesResponse? mapRawResponseToDevicesResponse(Map<String, dynamic> response) {
   // Rename properties on the server response
   renameProperties(response, MESSAGING_DEVICES_RESPONSE_KEYS_MAP);
   if (response['results'] != null) {
     for (final Map<String, dynamic> messagingDeviceResult in response['results']) {
       renameProperties(messagingDeviceResult, MESSAGING_DEVICE_RESULT_KEYS_MAP);
+      // Map the FCM server's error strings to actual error objects.
       if (messagingDeviceResult['error'] != null) {
         final FirebaseError newError = FirebaseError.messagingFromServerCode(
           messagingDeviceResult['error'].toString(), null, messagingDeviceResult['error'] as Map<String, dynamic>,
@@ -83,7 +89,9 @@ MessagingDevicesResponse mapRawResponseToDevicesResponse(Map<String, dynamic> re
       }
     }
   }
-  return response as MessagingDevicesResponse;
+  MessagingDevicesResponse? responseObject;
+  responseObject = responseObject!.fromJson(response);
+  return responseObject;
 }
 
 
@@ -98,8 +106,10 @@ MessagingDeviceGroupResponse mapRawResponseToDeviceGroupResponse(Map<String, dyn
 
   // Add the 'failedRegistrationTokens' property if it does not exist on the response, which
   // it won't when the 'failureCount' property has a value of 0)
-  MessagingDeviceGroupResponse(response.length, 0, response as List<String>);
-  return response as MessagingDeviceGroupResponse;
+  MessagingDeviceGroupResponse(response.length, 0, <String>['$response']);
+  MessagingDeviceGroupResponse? responseObject;
+  responseObject = responseObject!.fromJson(response)!;
+  return responseObject;
 }
 
 /// Maps a raw FCM server response to a MessagingTopicManagementResponse object.
@@ -151,14 +161,21 @@ class Messaging {
 
 
   Future<String>? send(Message message, bool? dryRun) {
-    final Message copy = deepCopy(message) as Message;
+    final Message copy = deepCopy(message);
     validateMessage(copy);
     if (dryRun != null && dryRun is! bool) {
       throw FirebaseError.messaging(
           MessagingClientErrorCode.INVALID_ARGUMENT, 'dryRun must be a boolean');
     }
+
+    final Future<String> getUrlPatch = getUrlPatch.then((String urlPatch) {
+      Map<dynamic, dynamic> request =
+    }).then((Map<dynamic, dynamic>? response) {
+      return response!['name'].toString();
+    });
+
   }
-}
+
 
 /// Sends all the messages in the given list via Firebase Cloud Messaging.
 /// Employs batching to send the entire list as a single RPC call. Compared
@@ -198,7 +215,7 @@ Future<BatchResponse>? sendAll(List<Message>? messages, bool? dryRun) {
   //TODO getUrlPatch
 }
 
-Future<BatchResponse>? sendMulticast(MulticastMessage message, bool? dryRun) {
+Future<BatchResponse>? sendMulticast(MulticastMessage? message, bool? dryRun) {
   final MulticastMessage copy = deepCopy(message) as MulticastMessage;
   if (copy.tokens.isEmpty) {
     throw FirebaseError.messaging(

@@ -81,6 +81,16 @@ class BatchRequestClient {
     return utf8.encode('$buffer');
   }
 
+  /// Creates a single part in a multipart HTTP request body. The part consists of several headers
+  /// followed by the serialized sub request as the body. As per the requirements of the FCM batch
+  /// API, sets the content-type header to application/http, and the content-transfer-encoding to
+  /// binary.
+  ///
+  /// @param {SubRequest} request A sub request that will be used to populate the part.
+  /// @param {string} boundary Multipart boundary string.
+  /// @param {number} idx An index number that is used to set the content-id header.
+  /// @return {string} The part as a string that can be included in the HTTP body.
+
   String createPart(SubRequest request, String boundary, int idx) {
     final String serializedRequest = serializeSubRequest(request);
     String part = '--$boundary\r\n';
@@ -92,6 +102,13 @@ class BatchRequestClient {
     part += '$serializedRequest\r\n';
     return part;
   }
+
+  /// Serializes a sub request into a string that can be embedded in a multipart HTTP request. The
+  /// format of the string is the wire format of a typical HTTP request, consisting of a header and a
+  /// body.
+  ///
+  /// @param request {SubRequest} The sub request to be serialized.
+  /// @return {string} String representation of the SubRequest.
 
   String serializeSubRequest(SubRequest request) {
     final String requestBody = jsonEncode(request.body);

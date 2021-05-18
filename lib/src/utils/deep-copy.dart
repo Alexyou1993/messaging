@@ -30,19 +30,23 @@ dynamic deepExtend(dynamic target, dynamic source){
 
     case Map: {
       if(target == null){
-        return target as Map<dynamic, dynamic>;
+        return <dynamic, dynamic>{target: target};
       }
       break;
     }
 
     case List:{
-      return target as List<dynamic>;
+      return <dynamic>[target];
     }
     default:
     // Not a plain Object - treat it as a scalar.
       return source;
   }
+  String? prop;
+  if(prop == source){
+    target[prop] = deepExtend(target[prop], source[prop]);
+  }
 
-  //TODO const prop and for
+  return target;
 
 }

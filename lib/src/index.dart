@@ -1,3 +1,6 @@
+
+import 'dart:convert';
+
 import 'package:messaging/src/utils/error.dart';
 
 class BaseMessage {
@@ -928,11 +931,29 @@ class MessagingDevicesResponse {
     this.results,
   );
 
+  // MessagingDevicesResponse.fromJson(Map<String, dynamic> json):
+  //       canonicalRegistrationTokenCount = int.parse('${json['canonicalRegistrationTokenCount']}'),
+  //       failureCount = int.parse('${json['failureCount']}'),
+  //       multicastId = int.parse('${json['multicastId']}'),
+  //       successCount = int.parse('${json['successCount']}'),
+  //       results = <MessagingDeviceResult>[json['results'] as MessagingDeviceResult];
+
   int canonicalRegistrationTokenCount;
   int failureCount;
   int multicastId;
   int successCount;
   List<MessagingDeviceResult> results;
+
+  MessagingDevicesResponse? fromJson(Map<String, dynamic> json) {
+    canonicalRegistrationTokenCount = int.parse('${json['canonicalRegistrationTokenCount']}');
+    failureCount = int.parse('${json['failureCount']}');
+    multicastId = int.parse('${json['multicastId']}');
+    successCount = int.parse('${json['successCount']}');
+    results = <MessagingDeviceResult>[json['results'] as MessagingDeviceResult];
+  }
+
+
+
 }
 
 /// Interface representing the server response from the
@@ -956,7 +977,14 @@ class MessagingDeviceGroupResponse {
   /// An array of registration tokens that failed to receive the message.
 
   List<String> failedRegistrationTokens;
+
+  MessagingDeviceGroupResponse? fromJson(Map<String, dynamic> json) {
+    successCount = int.parse('${json['successCount']}');
+    failureCount = int.parse('${json['failureCount']}');
+    failedRegistrationTokens = <String>['${json['failedRegistrationTokens']}'];
+  }
 }
+
 
 /// Interface representing the server response from the legacy
 /// [link messaging.Messaging.sendToTopic `sendToTopic()`] method.
