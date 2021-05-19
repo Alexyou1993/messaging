@@ -77,7 +77,7 @@ bool isString(dynamic value){
 /// @param {dynamic} value The value to validate.
 /// @return {boolean} Whether the value is a base64 string or not.
 
-bool isBase64String(dynamic value) {
+bool? isBase64String(dynamic value) {
 
 }
 
@@ -192,10 +192,33 @@ bool isUrl(dynamic urlStr){
     return false;
   }
 
-  final Uri uri = urlStr as Uri;
-  final String scheme = uri.scheme;
-  final String hostname = uri.host;
-  final String pathname = uri.path;
+  final Uri? uri = urlStr as Uri;
+  final String? scheme = uri!.scheme;
+  //final slashes = uri.slashes;
+  final String? hostname = uri.host;
+  final String? pathname = uri.path;
+
+  if (scheme != 'http:' && scheme != 'https:' ) {
+    return false;
+  }
+  // Validate hostname: Can contain letters, numbers, underscore and dashes separated by a dot.
+  // Each zone must not start with a hyphen or underscore.
+  final  RegExp validCharacters = RegExp(r'^[a-zA-Z0-9:/?#[\]@!$&()*+,;=.\-_~%]');
+  if(!hostname!.contains(validCharacters)){
+    for(int idx = 0; idx<hostname.length; idx++){
+      if(hostname[0] == '.' || hostname[0] == '_' || hostname[0]=='-' || hostname[0] == '#'){
+        return false;
+      }
+      if(hostname[idx] == '.'){
+        if(hostname[idx+1] == '_' || hostname[idx+1] == '#'){
+          return false;
+        }
+      }
+    }
+  }
+
+
+  return true;
 }
 
 

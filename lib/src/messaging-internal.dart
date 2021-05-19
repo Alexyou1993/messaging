@@ -396,11 +396,13 @@ void validateAndroidNotification(AndroidNotification? notification) {
     );
   }
 
-  if (!isUrl(notification.imageUrl!)) {
-    throw FirebaseError.messaging(
-      MessagingClientErrorCode.INVALID_PAYLOAD,
-      'android.notification.imageUrl must be a valid URL string',
-    );
+  if(notification.imageUrl != null){
+    if (!isUrl(notification.imageUrl)) {
+      throw FirebaseError.messaging(
+        MessagingClientErrorCode.INVALID_PAYLOAD,
+        'android.notification.imageUrl must be a valid URL string',
+      );
+    }
   }
 
   if (notification.eventTimestamp != null) {

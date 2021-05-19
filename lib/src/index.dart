@@ -1,17 +1,14 @@
-
-import 'dart:convert';
-
 import 'package:messaging/src/utils/error.dart';
 
 class BaseMessage {
   BaseMessage({
-    required this.token,
-    required this.data,
-    required this.notification,
-    required this.android,
-    required this.webpush,
-    required this.apns,
-    required this.fcmOptions,
+    this.token,
+    this.data,
+    this.notification,
+    this.android,
+    this.webpush,
+    this.apns,
+    this.fcmOptions,
   });
 
   String? token;
@@ -85,11 +82,11 @@ class Message extends BaseMessage {
 
 /// The payload contains all the fields in the BaseMessage type, and a list of tokens.
 
-// class MulticastMessage extends BaseMessage {
-//   MulticastMessage({required this.tokens});
-//
-//   final List<String> tokens;
-// }
+class MulticastMessage extends BaseMessage {
+  MulticastMessage({required this.tokens});
+
+  final List<String> tokens;
+}
 
 /// A notification that can be included in [link messaging.Message].
 
@@ -386,10 +383,10 @@ class ApnsFcmOptions {
 
   String? imageUrl;
 
-  Map<String, dynamic> toMap(){
+  Map<String, dynamic> toMap() {
     return <String, dynamic>{
-       'analyticsLabel': analyticsLabel,
-        'imageUrl': imageUrl,
+      'analyticsLabel': analyticsLabel,
+      'imageUrl': imageUrl,
     };
   }
 }
@@ -951,9 +948,6 @@ class MessagingDevicesResponse {
     successCount = int.parse('${json['successCount']}');
     results = <MessagingDeviceResult>[json['results'] as MessagingDeviceResult];
   }
-
-
-
 }
 
 /// Interface representing the server response from the
@@ -984,7 +978,6 @@ class MessagingDeviceGroupResponse {
     failedRegistrationTokens = <String>['${json['failedRegistrationTokens']}'];
   }
 }
-
 
 /// Interface representing the server response from the legacy
 /// [link messaging.Messaging.sendToTopic `sendToTopic()`] method.
