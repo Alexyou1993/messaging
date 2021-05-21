@@ -928,12 +928,12 @@ class MessagingDevicesResponse {
     this.results,
   );
 
-  // MessagingDevicesResponse.fromJson(Map<String, dynamic> json):
-  //       canonicalRegistrationTokenCount = int.parse('${json['canonicalRegistrationTokenCount']}'),
-  //       failureCount = int.parse('${json['failureCount']}'),
-  //       multicastId = int.parse('${json['multicastId']}'),
-  //       successCount = int.parse('${json['successCount']}'),
-  //       results = <MessagingDeviceResult>[json['results'] as MessagingDeviceResult];
+  MessagingDevicesResponse.fromJson(Map<dynamic, dynamic> json)
+      : canonicalRegistrationTokenCount = int.parse('${json['canonicalRegistrationTokenCount']}'),
+        failureCount = int.parse('${json['failureCount']}'),
+        multicastId = int.parse('${json['multicastId']}'),
+        successCount = int.parse('${json['successCount']}'),
+        results = <MessagingDeviceResult>[json['results'] as MessagingDeviceResult];
 
   int canonicalRegistrationTokenCount;
   int failureCount;
@@ -941,13 +941,13 @@ class MessagingDevicesResponse {
   int successCount;
   List<MessagingDeviceResult> results;
 
-  MessagingDevicesResponse? fromJson(Map<String, dynamic> json) {
-    canonicalRegistrationTokenCount = int.parse('${json['canonicalRegistrationTokenCount']}');
-    failureCount = int.parse('${json['failureCount']}');
-    multicastId = int.parse('${json['multicastId']}');
-    successCount = int.parse('${json['successCount']}');
-    results = <MessagingDeviceResult>[json['results'] as MessagingDeviceResult];
-  }
+// MessagingDevicesResponse fromJson(Map<String, dynamic> json) {
+//   canonicalRegistrationTokenCount = int.parse('${json['canonicalRegistrationTokenCount']}');
+//   failureCount = int.parse('${json['failureCount']}');
+//   multicastId = int.parse('${json['multicastId']}');
+//   successCount = int.parse('${json['successCount']}');
+//   results = <MessagingDeviceResult>[json['results'] as MessagingDeviceResult];
+// }
 }
 
 /// Interface representing the server response from the
@@ -960,6 +960,11 @@ class MessagingDevicesResponse {
 class MessagingDeviceGroupResponse {
   MessagingDeviceGroupResponse(this.successCount, this.failureCount, this.failedRegistrationTokens);
 
+  MessagingDeviceGroupResponse.fromJson(Map<dynamic, dynamic> json)
+      : successCount = int.parse('${json['successCount']}'),
+        failureCount = int.parse('${json['failureCount']}'),
+        failedRegistrationTokens = <String>['${json['failedRegistrationTokens']}'];
+
   /// The number of messages that could not be processed and resulted in an error.
 
   int successCount;
@@ -971,12 +976,6 @@ class MessagingDeviceGroupResponse {
   /// An array of registration tokens that failed to receive the message.
 
   List<String> failedRegistrationTokens;
-
-  MessagingDeviceGroupResponse? fromJson(Map<String, dynamic> json) {
-    successCount = int.parse('${json['successCount']}');
-    failureCount = int.parse('${json['failureCount']}');
-    failedRegistrationTokens = <String>['${json['failedRegistrationTokens']}'];
-  }
 }
 
 /// Interface representing the server response from the legacy
@@ -988,6 +987,8 @@ class MessagingDeviceGroupResponse {
 
 class MessagingTopicResponse {
   MessagingTopicResponse(this.messageId);
+
+  MessagingTopicResponse.fromJson(Map<dynamic, dynamic> json): messageId = int.parse('${json['messageId']}');
 
   /// The message ID for a successfully received request which FCM will attempt to
   /// deliver to all subscribed devices.
@@ -1004,6 +1005,8 @@ class MessagingTopicResponse {
 
 class MessagingConditionResponse {
   MessagingConditionResponse(this.messageId);
+
+  MessagingConditionResponse.fromJson(Map<dynamic, dynamic> json): messageId = int.parse('${json['messageId']}');
 
   /// The message ID for a successfully received request which FCM will attempt to
   /// deliver to all subscribed devices.

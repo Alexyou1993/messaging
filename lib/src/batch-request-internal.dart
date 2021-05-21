@@ -9,11 +9,11 @@ const String PART_BOUNDARY = '__EDN_OF_PART__';
 const Duration TEN_SECONDS_IN_MILLIS = Duration(seconds: 10);
 
 /// Represents a request that can be sent as part of an HTTP batch request.
-abstract class SubRequest {
-  SubRequest(this.url, this.body, {this.headers});
+class SubRequest {
+  SubRequest({required this.url, required this.body, this.headers});
 
   final String url;
-  final Map<dynamic, dynamic> body;
+  final Map<String, dynamic> body;
   Map<String, dynamic>? headers;
 }
 
