@@ -63,6 +63,7 @@ class Message extends BaseMessage {
           fcmOptions: fcmOptionsMessage,
         );
 
+
   @override
   String? token;
 
@@ -85,7 +86,11 @@ class Message extends BaseMessage {
 class MulticastMessage extends BaseMessage {
   MulticastMessage({required this.tokens});
 
-  final List<String> tokens;
+  MulticastMessage.fromMap(Map<String, dynamic> _map) {
+    tokens = <String>[_map['tokens'].toString()] ;
+  }
+
+  late List<String> tokens;
 }
 
 /// A notification that can be included in [link messaging.Message].
@@ -795,6 +800,14 @@ class NotificationMessagePayload {
 /// for code samples and detailed documentation.
 
 class MessagingPayload {
+  MessagingPayload({this.data, this.notification});
+
+  MessagingPayload.fromMap(Map<String, dynamic> _map) {
+    data = _map['data'] as DataMessagePayload?;
+
+    notification = _map['notification'] as NotificationMessagePayload?;
+  }
+
   /// The data message payload.
 
   DataMessagePayload? data;
@@ -802,6 +815,13 @@ class MessagingPayload {
   /// The notification message payload.
 
   NotificationMessagePayload? notification;
+
+  Map<String, dynamic> toMap() {
+    return <String, dynamic>{
+      'data': data,
+      'notification': notification,
+    };
+  }
 }
 
 /// Interface representing the options that can be provided when sending a
@@ -811,6 +831,19 @@ class MessagingPayload {
 /// for code samples and detailed documentation.
 
 class MessagingOptions {
+
+
+  MessagingOptions.fromMap(Map<String, dynamic> _map) {
+    dryRun = _map['dryRun'] as bool;
+    priority = _map['priority'].toString();
+    timeToLive = _map['timeToLive'] as Duration;
+    collapseKey = _map['collapseKey'].toString();
+    mutableContent = _map['mutableContent'] as bool;
+    contentAvailable = _map['contentAvailable'] as bool;
+    restrictedPackageName = _map['restrictedPackageName'].toString();
+    data = _map['data'] as Map<String, dynamic>;
+  }
+
   /// Whether or not the message should actually be sent. When set to `true`,
   /// allows developers to test a request without actually sending a message. When
   /// set to `false`, the message will be sent.
@@ -988,7 +1021,7 @@ class MessagingDeviceGroupResponse {
 class MessagingTopicResponse {
   MessagingTopicResponse(this.messageId);
 
-  MessagingTopicResponse.fromJson(Map<dynamic, dynamic> json): messageId = int.parse('${json['messageId']}');
+  MessagingTopicResponse.fromJson(Map<dynamic, dynamic> json) : messageId = int.parse('${json['messageId']}');
 
   /// The message ID for a successfully received request which FCM will attempt to
   /// deliver to all subscribed devices.
@@ -1006,7 +1039,7 @@ class MessagingTopicResponse {
 class MessagingConditionResponse {
   MessagingConditionResponse(this.messageId);
 
-  MessagingConditionResponse.fromJson(Map<dynamic, dynamic> json): messageId = int.parse('${json['messageId']}');
+  MessagingConditionResponse.fromJson(Map<dynamic, dynamic> json) : messageId = int.parse('${json['messageId']}');
 
   /// The message ID for a successfully received request which FCM will attempt to
   /// deliver to all subscribed devices.

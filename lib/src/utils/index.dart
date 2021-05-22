@@ -17,7 +17,7 @@ void renameProperties(Map<dynamic, dynamic> obj, Map<dynamic, String> keyMap) {
 
 void addReadonlyGetter(Map<dynamic, dynamic> obj, String prop, dynamic value) {}
 
-String getExplicitProjectId(_app.App app) {
+String getExplicitProjectId(FirebaseApp app) {
   final options = app.options;
   if (options.projectId != '' && options.projectId is String) {
     return options.projectId;
@@ -45,7 +45,7 @@ String getExplicitProjectId(_app.App app) {
 ///
 /// @return A project ID string or null.
 
-Future<String> findProjectId(_app.App app) {
+Future<String> findProjectId(FirebaseApp app) {
   const String projectId = getExplicitProjectId(app);
   if (projectId != '') {
     return projectId as Future<String>;

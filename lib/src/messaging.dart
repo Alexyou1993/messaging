@@ -1,6 +1,3 @@
-// FCM endpoints
-import 'dart:html';
-
 import 'package:messaging/src/batch-request-internal.dart';
 import 'package:messaging/src/index.dart';
 import 'package:messaging/src/messaging-api-request-internal.dart';
@@ -10,7 +7,7 @@ import 'package:messaging/src/utils/error.dart';
 import 'package:messaging/src/utils/index.dart';
 import 'package:messaging/src/utils/validator.dart';
 
-
+// FCM endpoints
 const String FCM_SEND_HOST = 'fcm.googleapis.com';
 const String FCM_SEND_PATH = '/fcm/send';
 const String FCM_TOPIC_MANAGEMENT_HOST = 'iid.googleapis.com';
@@ -73,7 +70,7 @@ const Map<String, String> MESSAGING_CONDITION_RESPONSE_KEYS_MAP = <String, Strin
 
 /// Maps a raw FCM server response to a MessagingDevicesResponse object.
 ///
-/// @param {object} response The raw FCM server response to map.
+/// @param {Map<dynamic, dynamic>} response The raw FCM server response to map.
 ///
 /// @return {MessagingDeviceGroupResponse} The mapped MessagingDevicesResponse object.
 
@@ -131,9 +128,11 @@ MessagingTopicManagementResponse mapRawResponseToTopicManagementResponse(Map<dyn
     for (int idx = 0; idx < response.length; idx++) {
       if (response[idx] == 'error') {
         result.failureCount += 1;
-        final List<FirebaseArrayIndexError> newError = FirebaseError.messagingFromTopicManagementServerError(
-            'error') as List<FirebaseArrayIndexError>;
-        result.errors.insertAll(idx, newError);
+        final FirebaseError newError = FirebaseError.messagingFromTopicManagementServerError(
+            response[idx].toString(),
+            'error', <String, dynamic>{'error': response[idx]});
+        final FirebaseArrayIndexError err = FirebaseArrayIndexError(idx, newError);
+        result.errors.insertAll(err.index, <FirebaseArrayIndexError>[err]);
       } else {
         result.successCount += 1;
       }
@@ -148,12 +147,6 @@ class Request {
   Message message;
   bool? validateOnly;
 
-}
-
-class Response {
-  Response(this.name);
-
-  String name;
 }
 
 /// Messaging service bound to the provided app.
@@ -263,8 +256,8 @@ class Messaging {
     });
   }
 
-  Future<BatchResponse> sendMulticast(MulticastMessage? message, bool? dryRun) {
-    final MulticastMessage copy = deepCopy(message) as MulticastMessage;
+  Future<BatchResponse> sendMulticast(MulticastMessage message, bool? dryRun) {
+    final MulticastMessage copy =  MulticastMessage.fromMap(<String, dynamic> {'message':deepCopy(message)});
     if (copy.tokens.isEmpty) {
       throw FirebaseError.messaging(
           MessagingClientErrorCode.INVALID_ARGUMENT, 'tokens must be a non-empty array');
@@ -278,8 +271,7 @@ class Messaging {
       webpushMessage: copy.webpush,
       apnsMessage: copy.apns,
       fcmOptionsMessage: copy.fcmOptions,
-    ),
-    ];
+    )];
 
     return sendAll(messages, dryRun);
   }
@@ -313,7 +305,7 @@ class Messaging {
       validateRegistrationTokens(
         registrationTokenOrTokens, 'sendToDevice', MessagingClientErrorCode.INVALID_RECIPIENT,
       );
-      final MessagingPayload payloadCopy = validateMessagingPayload(payload)!;
+      final MessagingPayload payloadCopy = validateMessagingPayload(payload);
       final MessagingOptions optionsCopy = validateMessagingOptions(options);
       final dynamic request = deepCopy(payloadCopy);
       deepExtend(request, optionsCopy);
@@ -384,7 +376,7 @@ class Messaging {
     return Future<void>.value().then((_) {
       // Validate the contents of the payload and options objects. Because we are now in a
       // promise, any thrown error will cause this method to return a rejected promise.
-      final MessagingPayload payloadCopy = validateMessagingPayload(payload)!;
+      final MessagingPayload payloadCopy = validateMessagingPayload(payload);
       final MessagingOptions optionsCopy = validateMessagingOptions(options);
 
       final dynamic request = deepCopy(payloadCopy);
@@ -410,9 +402,11 @@ class Messaging {
             'Notification key provided to sendToDeviceGroup() is invalid.',
           );
         } else {
-          final MessagingDevicesResponse? devicesResponse = mapRawResponseToDevicesResponse(response);
-          final MessagingDeviceGroupResponse deviceGroupResponse = devicesResponse as MessagingDeviceGroupResponse;
-          deviceGroupResponse.failedRegistrationTokens = <String>[];
+          final MessagingDevicesResponse devicesResponse = mapRawResponseToDevicesResponse(response);
+          final MessagingDeviceGroupResponse deviceGroupResponse = MessagingDeviceGroupResponse(
+            devicesResponse.successCount,
+            devicesResponse.failureCount,
+            <String>[]);
           return deviceGroupResponse;
         }
       }
@@ -449,7 +443,7 @@ class Messaging {
     return Future<void>.value().then((_) {
       // Validate the contents of the payload and options objects. Because we are now in a
       // promise, any thrown error will cause this method to return a rejected future.
-      final MessagingPayload payloadCopy = validateMessagingPayload(payload)!;
+      final MessagingPayload payloadCopy = validateMessagingPayload(payload);
       final MessagingOptions optionsCopy = validateMessagingOptions(options);
 
       validateTopic(topic, 'sendToTopic', MessagingClientErrorCode.INVALID_PAYLOAD);
@@ -509,7 +503,7 @@ class Messaging {
     return Future<void>.value().then((_) {
       // Validate the contents of the payload and options objects. Because we are now in a
       // promise, any thrown error will cause this method to return a rejected promise.
-      final MessagingPayload payloadCopy = validateMessagingPayload(payload)!;
+      final MessagingPayload payloadCopy = validateMessagingPayload(payload);
       final MessagingOptions optionsCopy = validateMessagingOptions(options);
 
       final dynamic request = deepCopy(payloadCopy);
@@ -565,8 +559,8 @@ class Messaging {
   /// @return A promise fulfilled with the server's response after the device has been
   ///   unsubscribed from the topic.
 
-  Future<MessagingTopicManagementResponse>? unsubscribeFromTopic(List<String> registrationTokenOrTokens,
-      String topic,) {
+  Future<MessagingTopicManagementResponse> unsubscribeFromTopic(List<String> registrationTokenOrTokens,
+      String topic) {
     return sendTopicManagementRequest(
       registrationTokenOrTokens,
       topic,
@@ -583,8 +577,8 @@ class Messaging {
       if (projectId.isEmpty) {
         throw FirebaseError.messaging(MessagingClientErrorCode.INVALID_ARGUMENT,
           'Failed to determine project ID for Messaging. Initialize the '
-              + 'SDK with service account credentials or set project ID as an app option. '
-              + 'Alternatively set the GOOGLE_CLOUD_PROJECT environment variable.',);
+              'SDK with service account credentials or set project ID as an app option. '
+              'Alternatively set the GOOGLE_CLOUD_PROJECT environment variable.',);
       }
 
       urlPath = '/v1/projects/$projectId/messages:send';
@@ -666,7 +660,7 @@ class Messaging {
   ///     from camelCase to underscore_case.
 
   MessagingPayload validateMessagingPayload(MessagingPayload payload) {
-    final dynamic payloadCopy = deepCopy(payload);
+    final MessagingPayload payloadCopy = MessagingPayload.fromMap(<String, dynamic>{'payload': deepCopy(payload)});
     bool containsDataOrNotificationKey = false;
     final List<String> validPayloadKeys = <String>['data', 'notification'];
     for (int idx = 0; idx < payloadCopy
@@ -691,7 +685,47 @@ class Messaging {
         'Messaging payload must contain at least one of the "data" or "notification" properties.',
       );
     }
-    //todo validatePayload
+
+    void validatePayload(String payloadKey, DataMessagePayload value) {
+      for (int idx = 0; idx < value.data.length; idx++) {
+        if (!isString(value.data[idx])) {
+          throw FirebaseError.messaging(MessagingClientErrorCode.INVALID_PAYLOAD,
+            'Messaging payload contains an invalid value for the "$payloadKey.${value.data[idx]}" '
+                'property. Values must be strings.',);
+        } else if (payloadKey == 'data' && !value.data[idx]!.contains('google.')) {
+          // Validate the data payload does not contain keys which start with 'google.'.
+          throw FirebaseError.messaging(MessagingClientErrorCode.INVALID_PAYLOAD,
+            'Messaging payload contains the blacklisted "data.${value.data[idx]}" property.',);
+        }
+      }
+    }
+
+    if (payloadCopy.data != null) {
+      final DataMessagePayload value = DataMessagePayload(data: <String, String>{'data': payloadCopy.data.toString()});
+      validatePayload('data', value);
+    }
+    if (payloadCopy.notification != null) {
+      final DataMessagePayload value = DataMessagePayload(
+          data: <String, String>{'notification': payloadCopy.notification.toString()});
+      validatePayload('notification', value);
+    }
+
+    // Validate the data payload object does not contain blacklisted properties
+    if (payloadCopy.data!.data.containsKey('data')) {
+      for (int idx = 0; idx < BLACKLISTED_DATA_PAYLOAD_KEYS.length; idx++) {
+        if (payloadCopy.data!.data.containsKey(BLACKLISTED_DATA_PAYLOAD_KEYS[idx])) {
+          throw FirebaseError.messaging(MessagingClientErrorCode.INVALID_PAYLOAD,
+            'Messaging payload contains the blacklisted "data.${BLACKLISTED_DATA_PAYLOAD_KEYS[idx]}" property.',
+          );
+        }
+      }
+    }
+    // Convert whitelisted camelCase keys to underscore_case
+    if (payloadCopy.notification != null) {
+      renameProperties(<dynamic, dynamic>{'payloadCopy.notification': payloadCopy.notification},
+          CAMELCASED_NOTIFICATION_PAYLOAD_KEYS_MAP);
+    }
+    return payloadCopy;
   }
 
   /// Validates the messaging options. If invalid, an error will be thrown.
@@ -810,6 +844,13 @@ class Messaging {
     }
   }
 
+
+  /// Validates the provided topic. If invalid, an error will be thrown.
+  ///
+  /// @param {string} topic The topic to validate.
+  /// @param {string} method The method name to use in error messages.
+  /// @param {ErrorInfo?} [errorInfo] The error info to use if the topic is invalid.
+
   void validateTopic(String? topic,
       String methodName,
       [ErrorInfo errorInfo = MessagingClientErrorCode.INVALID_ARGUMENT]) {
@@ -834,8 +875,6 @@ class Messaging {
     }
     return topic;
   }
-
-
 }
 
 
